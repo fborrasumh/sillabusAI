@@ -6,375 +6,400 @@
 <title>SyllabusAI — Generador de Guías Docentes</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
 <style>
-  :root {
-    --ink:       #1a1f2e;
-    --ink-soft:  #4a5270;
-    --surface:   #f7f8fc;
-    --card:      #ffffff;
-    --border:    #e2e6f0;
-    --accent:    #2d5be3;
-    --accent-dk: #1e40af;
-    --accent-lt: #dbeafe;
-    --green:     #059669;
-    --green-lt:  #d1fae5;
-    --amber:     #d97706;
-    --amber-lt:  #fef3c7;
-    --red:       #dc2626;
-    --red-lt:    #fee2e2;
-    --purple:    #7c3aed;
-    --purple-lt: #ede9fe;
-    --radius:    10px;
-    --shadow:    0 2px 12px rgba(26,31,46,.08);
-    --shadow-lg: 0 8px 32px rgba(26,31,46,.13);
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.6}
+:root{
+  --ink:#1a1f2e;--ink-soft:#4a5270;--surface:#f7f8fc;--card:#ffffff;
+  --border:#e2e6f0;--accent:#2d5be3;--accent-dk:#1e40af;--accent-lt:#dbeafe;
+  --green:#059669;--green-lt:#d1fae5;--amber:#d97706;--amber-lt:#fef3c7;
+  --red:#dc2626;--red-lt:#fee2e2;--purple:#7c3aed;--purple-lt:#ede9fe;
+  --radius:10px;--shadow:0 2px 12px rgba(26,31,46,.08);--shadow-lg:0 8px 32px rgba(26,31,46,.13);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.6}
 
-  /* ── TOP BAR ── */
-  .topbar{background:var(--ink);color:#fff;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-  .topbar-brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;letter-spacing:-.3px}
-  .topbar-brand span{background:var(--accent);color:#fff;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:600;letter-spacing:.5px}
-  .topbar-actions{display:flex;gap:8px;align-items:center}
-  .btn-history{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;transition:.2s}
-  .btn-history:hover{background:rgba(255,255,255,.2)}
+/* ── TOP BAR ── */
+.topbar{background:var(--ink);color:#fff;padding:13px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:50}
+.topbar-brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:700;letter-spacing:-.3px}
+.topbar-brand span{background:var(--accent);color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;letter-spacing:.5px}
+.topbar-actions{display:flex;gap:8px}
+.btn-top{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 13px;font-size:13px;cursor:pointer;transition:.2s;white-space:nowrap}
+.btn-top:hover{background:rgba(255,255,255,.22)}
+.btn-top.active-tab{background:var(--accent);border-color:var(--accent)}
 
-  /* ── LAYOUT ── */
-  .layout{display:grid;grid-template-columns:340px 1fr;gap:0;min-height:calc(100vh - 52px)}
-  @media(max-width:900px){.layout{grid-template-columns:1fr}}
+/* ── VIEWS (wizard | generating | result) ── */
+/* Cada vista es full-width centrada */
+.view{display:none;max-width:900px;margin:0 auto;padding:32px 20px}
+.view.active{display:block}
+.view-full{max-width:100%;padding:0}
 
-  /* ── SIDEBAR ── */
-  .sidebar{background:var(--card);border-right:1px solid var(--border);padding:24px 20px;overflow-y:auto;max-height:calc(100vh - 52px);position:sticky;top:0}
-  .sidebar-title{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-soft);margin-bottom:16px}
+/* ── WIZARD VIEW ── */
+.wiz-title{text-align:center;margin-bottom:28px}
+.wiz-title h2{font-size:24px;font-weight:800;margin-bottom:6px}
+.wiz-title p{color:var(--ink-soft);font-size:14px}
 
-  .form-section{margin-bottom:22px}
-  .form-section-label{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--accent-lt)}
+.wiz-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:700px){.wiz-grid{grid-template-columns:1fr}}
 
-  .field{margin-bottom:12px}
-  .field label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:4px}
-  .field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13.5px;color:var(--ink);background:#fff;transition:.2s;font-family:inherit}
-  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-lt)}
-  .field textarea{resize:vertical;min-height:68px}
-  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wiz-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.wiz-card-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--accent-lt)}
 
-  .model-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--purple-lt);color:var(--purple);border-radius:4px;padding:2px 7px;font-weight:600;margin-top:3px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13.5px;color:var(--ink);background:#fff;transition:.2s;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-lt)}
+.field textarea{resize:vertical;min-height:70px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
-  .btn-gen{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px}
-  .btn-gen:hover{background:var(--accent-dk)}
-  .btn-gen:disabled{background:#94a3b8;cursor:not-allowed}
+.region-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.region-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:20px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:.2s;background:#fff;color:var(--ink-soft);font-weight:500}
+.region-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 
-  .region-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:.2s;background:#fff;color:var(--ink-soft);font-weight:500}
-  .region-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .region-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.model-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--purple-lt);color:var(--purple);border-radius:4px;padding:2px 7px;font-weight:600;margin-top:4px}
 
-  /* ── MAIN ── */
-  .main{padding:28px;overflow-y:auto}
+.wiz-footer{margin-top:24px;display:flex;justify-content:center}
+.btn-gen{padding:14px 48px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:800;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:10px;letter-spacing:-.2px}
+.btn-gen:hover{background:var(--accent-dk);transform:translateY(-1px);box-shadow:0 4px 16px rgba(45,91,227,.35)}
+.btn-gen:disabled{background:#94a3b8;cursor:not-allowed;transform:none;box-shadow:none}
 
-  /* ── PROGRESS ── */
-  .progress-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:24px;display:none}
-  .progress-wrap.active{display:block}
-  .progress-title{font-weight:700;margin-bottom:12px;font-size:15px}
-  .agents-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
-  @media(max-width:700px){.agents-grid{grid-template-columns:1fr 1fr}}
-  .agent-card{border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12.5px;transition:.3s}
-  .agent-card .a-name{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-  .agent-card .a-status{color:var(--ink-soft);font-size:11.5px}
-  .agent-card.pending{background:#fafafa;color:#aaa}
-  .agent-card.running{background:var(--amber-lt);border-color:var(--amber);animation:pulse 1.2s ease-in-out infinite}
-  .agent-card.done{background:var(--green-lt);border-color:var(--green)}
-  .agent-card.error{background:var(--red-lt);border-color:var(--red)}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
-  .progress-bar-wrap{background:var(--border);border-radius:99px;height:6px;overflow:hidden}
-  .progress-bar{background:var(--accent);height:100%;border-radius:99px;transition:width .4s}
+.api-warning{background:var(--red-lt);border:1px solid var(--red);border-radius:8px;padding:11px 15px;font-size:13px;color:var(--red);margin-bottom:16px;display:none}
+.api-warning.show{display:block}
 
-  /* ── RESULT ── */
-  .result-wrap{display:none}
-  .result-wrap.active{display:block}
-  .result-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-  .result-title{font-size:20px;font-weight:800;color:var(--ink)}
-  .export-btns{display:flex;gap:8px;flex-wrap:wrap}
-  .btn-export{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.2s}
-  .btn-word{background:#2b579a;color:#fff}.btn-word:hover{background:#1e3f7a}
-  .btn-pdf{background:#c0392b;color:#fff}.btn-pdf:hover{background:#922b21}
-  .btn-json{background:var(--green);color:#fff}.btn-json:hover{background:#047857}
-  .btn-copy{background:var(--ink-soft);color:#fff}.btn-copy:hover{background:var(--ink)}
+/* ── PROMPTS PANEL ── */
+.prompts-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:20px}
+.prompts-header{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.prompts-header h3{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.prompts-header .chevron{font-size:12px;transition:.25s;display:inline-block}
+.prompts-header.open .chevron{transform:rotate(180deg)}
+.prompts-body{display:none;padding:0 20px 20px}
+.prompts-body.open{display:block}
+.prompt-agent{margin-bottom:16px}
+.prompt-agent-label{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.prompt-agent-label strong{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.prompt-agent-label .pa-badge{background:var(--accent-lt);color:var(--accent-dk);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700}
+.prompt-textarea{width:100%;min-height:90px;padding:9px 11px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;font-family:'Courier New',monospace;line-height:1.5;resize:vertical;color:var(--ink);background:#fafbff;transition:.2s}
+.prompt-textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-lt)}
+.prompt-hint{font-size:11.5px;color:var(--ink-soft);margin-top:3px}
+.btn-reset-prompts{font-size:12px;padding:5px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--ink-soft);transition:.2s}
+.btn-reset-prompts:hover{border-color:var(--accent);color:var(--accent)}
 
-  .syllabus-preview{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px 36px;box-shadow:var(--shadow)}
-  @media(max-width:700px){.syllabus-preview{padding:20px 16px}}
+/* ── GENERATING VIEW ── */
+#viewGenerating{max-width:860px}
+.gen-header{text-align:center;margin-bottom:24px}
+.gen-header h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.gen-header p{color:var(--ink-soft);font-size:13.5px}
 
-  /* Sections in preview */
-  .syl-header{text-align:center;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid var(--accent)}
-  .syl-header h1{font-size:22px;font-weight:800;color:var(--ink);margin-bottom:6px}
-  .syl-header .syl-meta{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px}
-  .syl-meta-chip{background:var(--accent-lt);color:var(--accent-dk);border-radius:5px;padding:3px 10px;font-size:12px;font-weight:600}
+.agents-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
+@media(max-width:750px){.agents-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:480px){.agents-row{grid-template-columns:repeat(2,1fr)}}
+.agent-card{border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:12px;transition:.3s;text-align:center}
+.agent-card .a-icon{font-size:18px;margin-bottom:3px}
+.agent-card .a-name{font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.agent-card .a-status{color:var(--ink-soft);font-size:10.5px;line-height:1.3}
+.agent-card.pending{background:#fafafa;opacity:.55}
+.agent-card.running{background:var(--amber-lt);border-color:var(--amber);animation:pulse 1.1s ease-in-out infinite}
+.agent-card.done{background:var(--green-lt);border-color:var(--green)}
+.agent-card.error{background:var(--red-lt);border-color:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
 
-  .syl-section{margin-bottom:26px}
-  .syl-section-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);margin-bottom:10px;padding:6px 10px;background:var(--accent-lt);border-radius:5px;border-left:3px solid var(--accent)}
-  .syl-section-content{font-size:14px;color:var(--ink);line-height:1.7;white-space:pre-wrap}
+.progress-bar-wrap{background:var(--border);border-radius:99px;height:7px;overflow:hidden;margin-bottom:24px}
+.progress-bar{background:linear-gradient(90deg,var(--accent),#60a5fa);height:100%;border-radius:99px;transition:width .5s ease}
 
-  .competencia-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px}
-  .competencia-item:last-child{border-bottom:none}
-  .comp-code{background:var(--purple-lt);color:var(--purple);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;white-space:nowrap;align-self:flex-start;margin-top:2px}
+/* Live preview sections */
+.live-preview{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.live-section{border-bottom:1px solid var(--border);overflow:hidden}
+.live-section:last-child{border-bottom:none}
+.live-section-header{padding:12px 18px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;background:#fff}
+.live-section-header:hover{background:var(--surface)}
+.ls-icon{font-size:15px;flex-shrink:0}
+.ls-title{font-size:13px;font-weight:700;flex:1}
+.ls-status{font-size:11px;padding:2px 8px;border-radius:12px;font-weight:600;white-space:nowrap}
+.ls-status.waiting{background:#f1f5f9;color:#94a3b8}
+.ls-status.loading{background:var(--amber-lt);color:var(--amber);animation:pulse 1s infinite}
+.ls-status.ready{background:var(--green-lt);color:var(--green)}
+.ls-chevron{font-size:11px;color:#aaa;transition:.2s;margin-left:4px}
+.live-section.expanded .ls-chevron{transform:rotate(180deg)}
+.live-section-body{display:none;padding:14px 18px 16px;border-top:1px solid var(--border);background:var(--surface);font-size:13.5px;line-height:1.7;animation:fadeIn .3s ease}
+.live-section.expanded .live-section-body{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 
-  .eval-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
-  .eval-table th{background:var(--accent);color:#fff;padding:8px 12px;text-align:left;font-size:12px;font-weight:700;letter-spacing:.3px}
-  .eval-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
-  .eval-table tr:last-child td{border-bottom:none}
-  .eval-table tr:nth-child(even) td{background:var(--surface)}
+.skeleton{background:linear-gradient(90deg,#e2e6f0 25%,#edf0f7 50%,#e2e6f0 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:4px;height:14px;margin-bottom:8px}
+.skeleton.wide{width:100%}.skeleton.med{width:75%}.skeleton.short{width:50%}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-  .tema-item{padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;font-size:13.5px}
-  .tema-item:last-child{border-bottom:none}
-  .tema-num{background:var(--ink);color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap;align-self:flex-start;margin-top:2px}
-  .tema-hours{color:var(--ink-soft);font-size:12px;white-space:nowrap;align-self:flex-start;margin-top:4px}
+/* ── RESULT VIEW ── */
+#viewResult{max-width:900px}
+.result-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.result-title{font-size:20px;font-weight:800;color:var(--ink)}
+.export-btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn-export{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.2s}
+.btn-word{background:#2b579a;color:#fff}.btn-word:hover{background:#1e3f7a}
+.btn-pdf{background:#c0392b;color:#fff}.btn-pdf:hover{background:#922b21}
+.btn-copy{background:var(--ink-soft);color:#fff}.btn-copy:hover{background:var(--ink)}
+.btn-new{background:var(--accent);color:#fff}.btn-new:hover{background:var(--accent-dk)}
 
-  .rda-item{display:flex;gap:8px;padding:5px 0;font-size:13.5px}
-  .rda-bullet{color:var(--green);font-weight:700;flex-shrink:0}
+.integration-banner{background:linear-gradient(135deg,var(--green-lt),var(--accent-lt));border:1px solid var(--green);border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.integration-text strong{display:block;font-size:13.5px;font-weight:700;color:var(--green)}
+.integration-text p{font-size:12.5px;color:var(--ink-soft)}
+.btn-export-caso{padding:8px 15px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.2s;flex-shrink:0}
+.btn-export-caso:hover{background:#047857}
 
-  .bib-item{padding:5px 0;font-size:13px;border-bottom:1px solid var(--border);color:var(--ink-soft)}
-  .bib-item:last-child{border-bottom:none}
+.syllabus-preview{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px 36px;box-shadow:var(--shadow)}
+@media(max-width:700px){.syllabus-preview{padding:18px 14px}}
+.syl-header{text-align:center;margin-bottom:28px;padding-bottom:18px;border-bottom:3px solid var(--accent)}
+.syl-header h1{font-size:22px;font-weight:800;margin-bottom:6px}
+.syl-meta{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;margin-top:10px}
+.syl-meta-chip{background:var(--accent-lt);color:var(--accent-dk);border-radius:5px;padding:3px 10px;font-size:12px;font-weight:600}
+.syl-section{margin-bottom:24px}
+.syl-section-title{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);margin-bottom:10px;padding:6px 10px;background:var(--accent-lt);border-radius:5px;border-left:3px solid var(--accent)}
+.syl-section-content{font-size:14px;color:var(--ink);line-height:1.7;white-space:pre-wrap}
+.competencia-item{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13.5px}
+.competencia-item:last-child{border-bottom:none}
+.comp-code{background:var(--purple-lt);color:var(--purple);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;white-space:nowrap;align-self:flex-start;margin-top:2px}
+.eval-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+.eval-table th{background:var(--accent);color:#fff;padding:8px 11px;text-align:left;font-size:12px;font-weight:700}
+.eval-table td{padding:8px 11px;border-bottom:1px solid var(--border)}
+.eval-table tr:last-child td{border-bottom:none}
+.eval-table tr:nth-child(even) td{background:var(--surface)}
+.tema-item{padding:7px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;font-size:13.5px}
+.tema-item:last-child{border-bottom:none}
+.tema-num{background:var(--ink);color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap;align-self:flex-start;margin-top:2px}
+.tema-hours{color:var(--ink-soft);font-size:12px;white-space:nowrap;align-self:flex-start;margin-top:4px}
+.rda-item{display:flex;gap:8px;padding:5px 0;font-size:13.5px}
+.rda-bullet{color:var(--green);font-weight:700;flex-shrink:0}
+.bib-item{padding:5px 0;font-size:13px;border-bottom:1px solid var(--border);color:var(--ink-soft)}
+.bib-item:last-child{border-bottom:none}
+.cronograma-table{width:100%;border-collapse:collapse;font-size:13px}
+.cronograma-table th{background:var(--ink-soft);color:#fff;padding:7px 10px;font-size:11.5px;text-align:left}
+.cronograma-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.cronograma-table tr:nth-child(even) td{background:var(--surface)}
+.badge-region{display:inline-flex;align-items:center;background:var(--amber-lt);color:var(--amber);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700}
 
-  .cronograma-table{width:100%;border-collapse:collapse;font-size:13px}
-  .cronograma-table th{background:var(--ink-soft);color:#fff;padding:7px 10px;font-size:11.5px;text-align:left}
-  .cronograma-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
-  .cronograma-table tr:nth-child(even) td{background:var(--surface)}
-
-  /* ── INTEGRATION BANNER ── */
-  .integration-banner{background:linear-gradient(135deg,var(--green-lt),var(--accent-lt));border:1px solid var(--green);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;display:none}
-  .integration-banner.show{display:flex}
-  .integration-icon{font-size:28px;flex-shrink:0}
-  .integration-text strong{display:block;font-size:14px;font-weight:700;color:var(--green);margin-bottom:2px}
-  .integration-text p{font-size:13px;color:var(--ink-soft)}
-  .btn-export-caso{padding:8px 16px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.2s}
-  .btn-export-caso:hover{background:#047857}
-
-  /* ── HISTORY PANEL ── */
-  .history-panel{position:fixed;top:0;right:0;width:400px;height:100vh;background:var(--card);border-left:1px solid var(--border);z-index:100;transform:translateX(100%);transition:.3s;padding:24px;overflow-y:auto;box-shadow:var(--shadow-lg)}
-  .history-panel.open{transform:translateX(0)}
-  .history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-  .history-header h3{font-size:16px;font-weight:700}
-  .btn-close-history{background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-soft)}
-  .history-item{border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:.2s;background:#fff}
-  .history-item:hover{border-color:var(--accent);background:var(--accent-lt)}
-  .history-item-title{font-weight:700;font-size:13.5px;margin-bottom:3px}
-  .history-item-meta{font-size:12px;color:var(--ink-soft)}
-  .history-empty{text-align:center;color:var(--ink-soft);padding:40px 0;font-size:14px}
-
-  /* ── EMPTY STATE ── */
-  .empty-state{text-align:center;padding:80px 20px;color:var(--ink-soft)}
-  .empty-icon{font-size:56px;margin-bottom:16px;opacity:.5}
-  .empty-state h3{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:8px}
-  .empty-state p{font-size:14px;max-width:420px;margin:0 auto;line-height:1.6}
-
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:99;display:none}
-  .overlay.show{display:block}
-
-  .toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;padding:12px 20px;border-radius:8px;font-size:13.5px;font-weight:600;z-index:200;opacity:0;transform:translateY(10px);transition:.3s;pointer-events:none}
-  .toast.show{opacity:1;transform:translateY(0)}
-
-  .badge-region{display:inline-flex;align-items:center;gap:4px;background:var(--amber-lt);color:var(--amber);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700}
-  .api-warning{background:var(--red-lt);border:1px solid var(--red);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--red);margin-bottom:16px;display:none}
-  .api-warning.show{display:block}
+/* ── HISTORY PANEL ── */
+.history-panel{position:fixed;top:0;right:0;width:400px;max-width:95vw;height:100vh;background:var(--card);border-left:1px solid var(--border);z-index:100;transform:translateX(100%);transition:.3s;padding:22px;overflow-y:auto;box-shadow:var(--shadow-lg)}
+.history-panel.open{transform:translateX(0)}
+.history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.history-header h3{font-size:15px;font-weight:700}
+.btn-close-history{background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-soft)}
+.history-item{border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:9px;cursor:pointer;transition:.2s;background:#fff}
+.history-item:hover{border-color:var(--accent);background:var(--accent-lt)}
+.history-item-title{font-weight:700;font-size:13px;margin-bottom:2px}
+.history-item-meta{font-size:11.5px;color:var(--ink-soft)}
+.history-empty{text-align:center;color:var(--ink-soft);padding:40px 0;font-size:13.5px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:99;display:none}
+.overlay.show{display:block}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--ink);color:#fff;padding:11px 18px;border-radius:8px;font-size:13.5px;font-weight:600;z-index:200;opacity:0;transform:translateY(8px);transition:.3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
 </style>
 </head>
 <body>
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <div class="topbar-brand">
-    📘 SyllabusAI <span>BETA</span>
-  </div>
+  <div class="topbar-brand">📘 SyllabusAI <span>BETA</span></div>
   <div class="topbar-actions">
-    <button class="btn-history" onclick="toggleHistory()">🗂️ Historial</button>
+    <button class="btn-top" id="btnTabForm" onclick="goToForm()">✏️ Nueva guía</button>
+    <button class="btn-top" onclick="toggleHistory()">🗂️ Historial</button>
   </div>
 </div>
 
-<!-- LAYOUT -->
-<div class="layout">
+<!-- ══ VIEW: WIZARD FORM ══ -->
+<div class="view active" id="viewForm">
+  <div class="wiz-title">
+    <h2>Nueva Guía Docente</h2>
+    <p>Rellena los datos de la asignatura y SyllabusAI generará la guía completa con 6 agentes de IA.</p>
+  </div>
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="sidebar-title">Nueva Guía Docente</div>
+  <div class="api-warning" id="apiWarning">⚠️ Introduce tu API Key de OpenAI para continuar.</div>
 
-    <div class="api-warning" id="apiWarning">⚠️ Introduce tu API Key de OpenAI para continuar.</div>
-
-    <!-- API KEY -->
-    <div class="form-section">
-      <div class="form-section-label">🔑 Configuración</div>
-      <div class="field">
-        <label>API Key OpenAI</label>
-        <input type="password" id="apiKey" placeholder="sk-..." oninput="saveApiKey()">
-      </div>
-      <div class="field">
-        <label>Modelo</label>
-        <select id="modelSel" onchange="updateModelBadge()">
-          <option value="gpt-4o-mini">gpt-4o-mini (Recomendado)</option>
-          <option value="gpt-4o">gpt-4o</option>
-          <option value="gpt-4-turbo">gpt-4-turbo</option>
-          <option value="o1-mini">o1-mini</option>
-        </select>
-        <div class="model-badge" id="modelBadge">⚡ gpt-4o-mini · Rápido y económico</div>
-      </div>
-    </div>
-
-    <!-- REGIÓN -->
-    <div class="form-section">
-      <div class="form-section-label">🌍 Contexto Regional</div>
-      <div class="region-row" id="regionRow">
-        <div class="region-chip active" onclick="setRegion('ES')" data-region="ES">🇪🇸 España</div>
-        <div class="region-chip" onclick="setRegion('MX')" data-region="MX">🇲🇽 México</div>
-        <div class="region-chip" onclick="setRegion('AR')" data-region="AR">🇦🇷 Argentina</div>
-        <div class="region-chip" onclick="setRegion('CO')" data-region="CO">🇨🇴 Colombia</div>
-        <div class="region-chip" onclick="setRegion('CL')" data-region="CL">🇨🇱 Chile</div>
-        <div class="region-chip" onclick="setRegion('PE')" data-region="PE">🇵🇪 Perú</div>
-        <div class="region-chip" onclick="setRegion('LATAM')" data-region="LATAM">🌎 LATAM Gen.</div>
-      </div>
-    </div>
-
-    <!-- DATOS BÁSICOS -->
-    <div class="form-section">
-      <div class="form-section-label">📋 Datos Básicos</div>
-      <div class="field">
-        <label>Nombre de la asignatura *</label>
-        <input type="text" id="fAsignatura" placeholder="Ej: Estadística Aplicada a la Ingeniería">
-      </div>
-      <div class="field">
-        <label>Titulación / Grado *</label>
-        <input type="text" id="fTitulacion" placeholder="Ej: Grado en Ingeniería Agrónoma">
-      </div>
-      <div class="field-row">
+  <div class="wiz-grid">
+    <!-- Col 1 -->
+    <div>
+      <div class="wiz-card">
+        <div class="wiz-card-title">🔑 Configuración</div>
         <div class="field">
-          <label>Créditos ECTS</label>
-          <input type="number" id="fCreditos" value="6" min="1" max="30">
+          <label>API Key OpenAI</label>
+          <input type="password" id="apiKey" placeholder="sk-..." oninput="saveApiKey()">
         </div>
         <div class="field">
-          <label>Curso</label>
-          <select id="fCurso">
-            <option>1º</option><option>2º</option><option selected>3º</option><option>4º</option>
-            <option>Máster 1º</option><option>Máster 2º</option>
+          <label>Modelo</label>
+          <select id="modelSel" onchange="updateModelBadge()">
+            <option value="gpt-4o-mini">gpt-4o-mini (Recomendado)</option>
+            <option value="gpt-4o">gpt-4o</option>
+            <option value="gpt-4-turbo">gpt-4-turbo</option>
+            <option value="o1-mini">o1-mini</option>
           </select>
+          <div class="model-badge" id="modelBadge">⚡ gpt-4o-mini · Rápido y económico</div>
         </div>
       </div>
-      <div class="field-row">
+
+      <div class="wiz-card" style="margin-top:16px">
+        <div class="wiz-card-title">🌍 Contexto Regional</div>
+        <div class="region-row" id="regionRow">
+          <div class="region-chip active" onclick="setRegion('ES')" data-region="ES">🇪🇸 España</div>
+          <div class="region-chip" onclick="setRegion('MX')" data-region="MX">🇲🇽 México</div>
+          <div class="region-chip" onclick="setRegion('AR')" data-region="AR">🇦🇷 Argentina</div>
+          <div class="region-chip" onclick="setRegion('CO')" data-region="CO">🇨🇴 Colombia</div>
+          <div class="region-chip" onclick="setRegion('CL')" data-region="CL">🇨🇱 Chile</div>
+          <div class="region-chip" onclick="setRegion('PE')" data-region="PE">🇵🇪 Perú</div>
+          <div class="region-chip" onclick="setRegion('LATAM')" data-region="LATAM">🌎 LATAM Gen.</div>
+        </div>
+      </div>
+
+      <div class="wiz-card" style="margin-top:16px">
+        <div class="wiz-card-title">📚 Contenido y Metodología</div>
         <div class="field">
-          <label>Tipo</label>
-          <select id="fTipo">
-            <option>Básica</option><option selected>Obligatoria</option><option>Optativa</option>
+          <label>Temario (opcional — índice libre)</label>
+          <textarea id="fTemario" placeholder="Pega un índice o descripción de temas..."></textarea>
+        </div>
+        <div class="field">
+          <label>Metodología preferida</label>
+          <select id="fMetodologia">
+            <option selected>Clases magistrales + prácticas</option>
+            <option>Aprendizaje Basado en Problemas (ABP)</option>
+            <option>Flipped Classroom</option>
+            <option>Aprendizaje Basado en Proyectos</option>
+            <option>Seminarios y talleres</option>
+            <option>Mixta (el modelo decide)</option>
           </select>
         </div>
         <div class="field">
-          <label>Semestre</label>
-          <select id="fSemestre">
-            <option>1º semestre</option><option selected>2º semestre</option><option>Anual</option>
+          <label>Marco de competencias</label>
+          <select id="fMarco">
+            <option selected>ANECA / VERIFICA (España)</option>
+            <option>Tuning América Latina</option>
+            <option>Genérico (sin referencia normativa)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Bibliografía clave (opcional)</label>
+          <textarea id="fBiblio" placeholder="Títulos clave a integrar..."></textarea>
+        </div>
+        <div class="field">
+          <label>Idioma de salida</label>
+          <select id="fIdioma">
+            <option selected>Español</option>
+            <option>Castellano neutro (Iberoamérica)</option>
+            <option>Catalán</option>
+            <option>Valenciano</option>
+            <option>Gallego</option>
+            <option>Euskera</option>
+            <option>Inglés</option>
+            <option>Portugués (Brasil)</option>
           </select>
         </div>
       </div>
-      <div class="field">
-        <label>Modalidad</label>
-        <select id="fModalidad">
-          <option selected>Presencial</option><option>Semipresencial</option><option>Online</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Departamento / Área</label>
-        <input type="text" id="fDepartamento" placeholder="Ej: Matemática Aplicada">
-      </div>
     </div>
 
-    <!-- CONTENIDO -->
-    <div class="form-section">
-      <div class="form-section-label">📚 Contenido</div>
-      <div class="field">
-        <label>Temario (opcional — índice libre)</label>
-        <textarea id="fTemario" placeholder="Pega un índice o descripción de temas..."></textarea>
+    <!-- Col 2 -->
+    <div>
+      <div class="wiz-card">
+        <div class="wiz-card-title">📋 Datos de la Asignatura</div>
+        <div class="field">
+          <label>Nombre de la asignatura *</label>
+          <input type="text" id="fAsignatura" placeholder="Ej: Estadística Aplicada a la Ingeniería">
+        </div>
+        <div class="field">
+          <label>Titulación / Grado *</label>
+          <input type="text" id="fTitulacion" placeholder="Ej: Grado en Ingeniería Agrónoma">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Créditos ECTS</label>
+            <input type="number" id="fCreditos" value="6" min="1" max="30">
+          </div>
+          <div class="field">
+            <label>Curso</label>
+            <select id="fCurso">
+              <option>1º</option><option>2º</option><option selected>3º</option><option>4º</option>
+              <option>Máster 1º</option><option>Máster 2º</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Tipo</label>
+            <select id="fTipo">
+              <option>Básica</option><option selected>Obligatoria</option><option>Optativa</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Semestre</label>
+            <select id="fSemestre">
+              <option>1º semestre</option><option selected>2º semestre</option><option>Anual</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Modalidad</label>
+          <select id="fModalidad">
+            <option selected>Presencial</option><option>Semipresencial</option><option>Online</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Departamento / Área</label>
+          <input type="text" id="fDepartamento" placeholder="Ej: Matemática Aplicada">
+        </div>
       </div>
-      <div class="field">
-        <label>Metodología preferida</label>
-        <select id="fMetodologia">
-          <option selected>Clases magistrales + prácticas</option>
-          <option>Aprendizaje Basado en Problemas (ABP)</option>
-          <option>Flipped Classroom</option>
-          <option>Aprendizaje Basado en Proyectos</option>
-          <option>Seminarios y talleres</option>
-          <option>Mixta (el modelo decide)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Marco de competencias</label>
-        <select id="fMarco">
-          <option selected>ANECA / VERIFICA (España)</option>
-          <option>Tuning América Latina</option>
-          <option>Genérico (sin referencia normativa)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Bibliografía clave (opcional)</label>
-        <textarea id="fBiblio" placeholder="Títulos clave a integrar..."></textarea>
+
+      <!-- ── PROMPTS PANEL ── -->
+      <div class="prompts-panel" style="margin-top:16px">
+        <div class="prompts-header" id="promptsHeader" onclick="togglePrompts()">
+          <h3>🧠 Personalizar prompts de los agentes <span style="font-size:11px;background:var(--purple-lt);color:var(--purple);padding:2px 7px;border-radius:4px;font-weight:700">AVANZADO</span></h3>
+          <div>
+            <button class="btn-reset-prompts" onclick="resetPrompts(event)">↺ Restablecer</button>
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+        <div class="prompts-body" id="promptsBody">
+          <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px">Edita los <strong>roles y reglas</strong> de cada agente. Los datos de la asignatura se inyectan automáticamente. Usa <code style="background:#eef;padding:1px 4px;border-radius:3px;font-size:11.5px">{{ASIGNATURA}}</code>, <code style="background:#eef;padding:1px 4px;border-radius:3px;font-size:11.5px">{{TITULACION}}</code>, <code style="background:#eef;padding:1px 4px;border-radius:3px;font-size:11.5px">{{CREDITOS}}</code>, <code style="background:#eef;padding:1px 4px;border-radius:3px;font-size:11.5px">{{REGION}}</code>, <code style="background:#eef;padding:1px 4px;border-radius:3px;font-size:11.5px">{{IDIOMA}}</code> para incluir los valores del formulario.</p>
+          <div id="promptFields"></div>
+        </div>
       </div>
     </div>
+  </div>
 
-    <!-- IDIOMA -->
-    <div class="form-section">
-      <div class="form-section-label">🌐 Idioma de salida</div>
-      <div class="field">
-        <select id="fIdioma">
-          <option selected>Español</option>
-          <option>Castellano neutro (Iberoamérica)</option>
-          <option>Catalán</option>
-          <option>Valenciano</option>
-          <option>Gallego</option>
-          <option>Euskera</option>
-          <option>Inglés</option>
-          <option>Portugués (Brasil)</option>
-        </select>
-      </div>
-    </div>
-
+  <div class="wiz-footer">
     <button class="btn-gen" id="btnGen" onclick="generateSyllabus()">
-      <span id="btnGenIcon">✨</span>
-      <span id="btnGenText">Generar Guía Docente</span>
+      <span>✨</span><span id="btnGenText">Generar Guía Docente</span>
     </button>
-  </aside>
+  </div>
+</div>
 
-  <!-- MAIN -->
-  <main class="main">
+<!-- ══ VIEW: GENERATING ══ -->
+<div class="view" id="viewGenerating">
+  <div class="gen-header">
+    <h2 id="genTitle">⏳ Generando guía docente…</h2>
+    <p id="genSubtitle">Los agentes están trabajando en paralelo. Puedes ver el resultado parcial mientras se genera.</p>
+  </div>
 
-    <!-- EMPTY STATE -->
-    <div class="empty-state" id="emptyState">
-      <div class="empty-icon">📘</div>
-      <h3>Genera tu guía docente en segundos</h3>
-      <p>Rellena los datos básicos de la asignatura y SyllabusAI generará una guía docente completa, alineada con competencias y resultados de aprendizaje, lista para exportar a Word o PDF.</p>
+  <div class="agents-row" id="agentsRow"></div>
+  <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+
+  <!-- Live preview: secciones que aparecen una a una -->
+  <div class="live-preview" id="livePreview"></div>
+</div>
+
+<!-- ══ VIEW: RESULT ══ -->
+<div class="view" id="viewResult">
+  <div class="result-header">
+    <div class="result-title" id="resultTitle">Guía Docente</div>
+    <div class="export-btns">
+      <button class="btn-export btn-new" onclick="goToForm()">✏️ Nueva guía</button>
+      <button class="btn-export btn-word" onclick="exportWord()">📄 Word</button>
+      <button class="btn-export btn-pdf" onclick="exportPDF()">🖨️ PDF</button>
+      <button class="btn-export btn-copy" onclick="copyText()">📋 Copiar</button>
     </div>
+  </div>
 
-    <!-- PROGRESS -->
-    <div class="progress-wrap" id="progressWrap">
-      <div class="progress-title" id="progressTitle">🤖 Generando guía docente…</div>
-      <div class="agents-grid" id="agentsGrid"></div>
-      <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+  <div class="integration-banner">
+    <div style="font-size:26px">🔗</div>
+    <div class="integration-text" style="flex:1">
+      <strong>¡Listo para CasoPrácticoAI!</strong>
+      <p>Exporta en JSON para importar competencias, RdA y temario directamente en CasoPrácticoAI.</p>
     </div>
+    <button class="btn-export-caso" onclick="exportForCasos()">Exportar para CasoPrácticoAI →</button>
+  </div>
 
-    <!-- INTEGRATION BANNER -->
-    <div class="integration-banner" id="integrationBanner">
-      <div class="integration-icon">🔗</div>
-      <div class="integration-text">
-        <strong>¡Listo para CasoPrácticoAI!</strong>
-        <p>Exporta esta guía en formato JSON para importarla directamente en CasoPrácticoAI y generar casos alineados con tus competencias y temario.</p>
-      </div>
-      <button class="btn-export-caso" onclick="exportForCasos()">Exportar para CasoPrácticoAI →</button>
-    </div>
-
-    <!-- RESULT -->
-    <div class="result-wrap" id="resultWrap">
-      <div class="result-header">
-        <div class="result-title" id="resultTitle">Guía Docente</div>
-        <div class="export-btns">
-          <button class="btn-export btn-word" onclick="exportWord()">📄 Word (.docx)</button>
-          <button class="btn-export btn-pdf" onclick="exportPDF()">📋 Imprimir / PDF</button>
-          <button class="btn-export btn-copy" onclick="copyText()">📋 Copiar texto</button>
-        </div>
-      </div>
-      <div class="syllabus-preview" id="syllabusPreview"></div>
-    </div>
-
-  </main>
+  <div class="syllabus-preview" id="syllabusPreview"></div>
 </div>
 
 <!-- HISTORY PANEL -->
@@ -387,22 +412,12 @@
   <div id="historyList"></div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ─────────────────────────────────────────────
-// CONSTANTS & STATE
-// ─────────────────────────────────────────────
-const AGENTS = [
-  { id:'ctx',   name:'Contextualizador',  desc:'Analiza inputs y detecta gaps' },
-  { id:'comp',  name:'Competencias',      desc:'Define CG y CE con marco elegido' },
-  { id:'rda',   name:'Resultados Aprend.',desc:'Verbos Bloom por niveles' },
-  { id:'tema',  name:'Temario',           desc:'Bloques con distribución horaria' },
-  { id:'eval',  name:'Evaluación',        desc:'Instrumentos, pesos y criterios' },
-  { id:'final', name:'Redactor Final',    desc:'Integra todo en la guía' },
-];
-
+// ═══════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════
 const MODEL_INFO = {
   'gpt-4o-mini':'⚡ gpt-4o-mini · Rápido y económico',
   'gpt-4o':'🚀 gpt-4o · Alta precisión',
@@ -411,112 +426,200 @@ const MODEL_INFO = {
 };
 
 const REGION_TERMS = {
-  ES:{ guia:'Guía Docente', creditos:'Créditos ECTS', grado:'Grado', master:'Máster', tfg:'Trabajo Fin de Grado', examen:'Prueba de Evaluación', norm:'ANECA/VERIFICA' },
-  MX:{ guia:'Programa de Asignatura', creditos:'Créditos', grado:'Licenciatura', master:'Posgrado/Maestría', tfg:'Tesis de Grado', examen:'Evaluación Parcial', norm:'SEP/CIEES' },
-  AR:{ guia:'Plan de Cursada', creditos:'Créditos', grado:'Licenciatura/Ingeniería', master:'Maestría', tfg:'Tesis/PPS', examen:'Evaluación Parcial', norm:'CONEAU' },
-  CO:{ guia:'Syllabus', creditos:'Créditos académicos', grado:'Carrera/Pregrado', master:'Maestría', tfg:'Trabajo de Grado', examen:'Evaluación', norm:'CNA/MEN' },
-  CL:{ guia:'Programa de Asignatura', creditos:'SCT-Chile', grado:'Carrera', master:'Magíster', tfg:'Memoria/Tesis', examen:'Evaluación', norm:'CNA Chile' },
-  PE:{ guia:'Sílabo', creditos:'Créditos', grado:'Carrera Profesional', master:'Maestría', tfg:'Tesis', examen:'Evaluación', norm:'SUNEDU' },
-  LATAM:{ guia:'Sílabo / Programa de Asignatura', creditos:'Créditos', grado:'Carrera/Grado', master:'Posgrado/Maestría', tfg:'Proyecto Final', examen:'Evaluación', norm:'Referencia institucional local' },
+  ES:{guia:'Guía Docente',creditos:'Créditos ECTS',grado:'Grado',master:'Máster',tfg:'Trabajo Fin de Grado',examen:'Prueba de Evaluación',norm:'ANECA/VERIFICA'},
+  MX:{guia:'Programa de Asignatura',creditos:'Créditos',grado:'Licenciatura',master:'Posgrado/Maestría',tfg:'Tesis de Grado',examen:'Evaluación Parcial',norm:'SEP/CIEES'},
+  AR:{guia:'Plan de Cursada',creditos:'Créditos',grado:'Licenciatura/Ingeniería',master:'Maestría',tfg:'Tesis/PPS',examen:'Evaluación Parcial',norm:'CONEAU'},
+  CO:{guia:'Syllabus',creditos:'Créditos académicos',grado:'Carrera/Pregrado',master:'Maestría',tfg:'Trabajo de Grado',examen:'Evaluación',norm:'CNA/MEN'},
+  CL:{guia:'Programa de Asignatura',creditos:'SCT-Chile',grado:'Carrera',master:'Magíster',tfg:'Memoria/Tesis',examen:'Evaluación',norm:'CNA Chile'},
+  PE:{guia:'Sílabo',creditos:'Créditos',grado:'Carrera Profesional',master:'Maestría',tfg:'Tesis',examen:'Evaluación',norm:'SUNEDU'},
+  LATAM:{guia:'Sílabo / Programa de Asignatura',creditos:'Créditos',grado:'Carrera/Grado',master:'Posgrado/Maestría',tfg:'Proyecto Final',examen:'Evaluación',norm:'Referencia institucional local'},
 };
+
+const AGENTS_DEF = [
+  {id:'ctx',  icon:'🔍', name:'Contexto',    desc:'Analiza la asignatura'},
+  {id:'comp', icon:'🎯', name:'Competencias',desc:'Define CG y CE'},
+  {id:'rda',  icon:'🌱', name:'Resultados',  desc:'Verbos Bloom'},
+  {id:'tema', icon:'📚', name:'Temario',     desc:'Bloques y horas'},
+  {id:'eval', icon:'⚖️', name:'Evaluación',  desc:'Instrumentos y pesos'},
+  {id:'final',icon:'✍️', name:'Redactor',    desc:'Integra la guía'},
+];
+
+// Prompts base (rol + reglas, sin datos de asignatura)
+const DEFAULT_PROMPTS = {
+  ctx:`Eres un experto en diseño curricular universitario. Analiza la asignatura y devuelve un JSON con:
+{"descripcion":"párrafo de 3-4 líneas sobre la asignatura y su relevancia","requisitos_previos":"conocimientos previos recomendados","perfil_estudiante":"descripción del perfil del estudiante","observaciones":"notas para el diseño curricular"}
+Responde SOLO con el JSON.`,
+
+  comp:`Eres un experto en diseño de competencias universitarias. Genera competencias para la asignatura y devuelve JSON:
+{"genericas":[{"codigo":"CG1","texto":"..."},{"codigo":"CG2","texto":"..."}],"especificas":[{"codigo":"CE1","texto":"..."},{"codigo":"CE2","texto":"..."},{"codigo":"CE3","texto":"..."},{"codigo":"CE4","texto":"..."}]}
+Reglas: CG transversales (comunicación, trabajo equipo, pensamiento crítico). CE específicas y medibles con verbos de acción.
+Responde SOLO con el JSON.`,
+
+  rda:`Eres un experto en taxonomía de Bloom para educación superior. Genera Resultados de Aprendizaje usando los niveles de Bloom apropiados.
+Devuelve JSON: {"resultados":[{"nivel":"Comprensión","bloom":"Nivel 2","texto":"Al finalizar, el estudiante será capaz de..."},{"nivel":"Aplicación","bloom":"Nivel 3","texto":"..."},{"nivel":"Análisis","bloom":"Nivel 4","texto":"..."},{"nivel":"Evaluación","bloom":"Nivel 5","texto":"..."},{"nivel":"Creación","bloom":"Nivel 6","texto":"..."}]}
+Los RdA deben empezar con "Al finalizar la asignatura, el estudiante será capaz de [verbo Bloom]..." y ser evaluables.
+Responde SOLO con el JSON.`,
+
+  tema:`Eres un experto en planificación curricular universitaria. Estructura el temario en bloques temáticos.
+Devuelve JSON: {"horas_totales":0,"horas_presenciales":0,"horas_no_presenciales":0,"bloques":[{"numero":1,"titulo":"...","horas":10,"temas":[{"num":"1.1","titulo":"...","horas_teoria":2,"horas_practica":1}]}]}
+Distribuye tiempo equilibradamente en 4-6 bloques. Las horas de bloques deben sumar las horas presenciales.
+Responde SOLO con el JSON.`,
+
+  eval:`Eres un experto en evaluación universitaria alineada con competencias. Diseña el sistema de evaluación.
+Devuelve JSON: {"descripcion_general":"...","instrumentos":[{"instrumento":"...","descripcion":"...","peso":40,"competencias_evaluadas":"CE1,CE2","criterios":"..."}],"nota_minima":"5 sobre 10","criterios_superacion":"...","convocatorias":"..."}
+Los pesos deben sumar exactamente 100. Instrumentos coherentes con la modalidad y metodología.
+Responde SOLO con el JSON.`,
+
+  final:`Eres un experto en guías docentes universitarias. Genera las secciones finales de la guía.
+Devuelve JSON: {"metodologia_detallada":"3-4 párrafos sobre metodología y actividades","recursos":["recurso1","recurso2","recurso3","recurso4"],"cronograma":[{"semana":"1-3","bloque":"...","actividades":"...","evaluacion":""}],"tutoria":"Información sobre tutorías presenciales y virtuales","informacion_adicional":"Requisitos de asistencia y normas académicas"}
+El cronograma debe tener 5 filas que cubran el semestre completo.
+Responde SOLO con el JSON.`
+};
+
+// Live section config: qué agente la genera y cómo renderizarla
+const LIVE_SECTIONS = [
+  {id:'ls-ctx',   agent:'ctx',  icon:'📄', title:'Descripción y contexto',     render:'renderCtx'},
+  {id:'ls-comp',  agent:'comp', icon:'🎯', title:'Competencias',               render:'renderComp'},
+  {id:'ls-rda',   agent:'rda',  icon:'🌱', title:'Resultados de Aprendizaje',  render:'renderRda'},
+  {id:'ls-tema',  agent:'tema', icon:'📚', title:'Temario',                    render:'renderTema'},
+  {id:'ls-eval',  agent:'eval', icon:'⚖️', title:'Sistema de Evaluación',      render:'renderEval'},
+  {id:'ls-final', agent:'final',icon:'✍️', title:'Metodología y Cronograma',   render:'renderFinal'},
+];
 
 let currentRegion = 'ES';
 let currentSyllabusData = null;
 let db = null;
+let customPrompts = {...DEFAULT_PROMPTS};
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 // INIT
-// ─────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
+// ═══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', ()=>{
   initDB();
-  const saved = localStorage.getItem('syllabusai_key');
-  if (saved) document.getElementById('apiKey').value = saved;
+  const k = localStorage.getItem('syllabusai_key');
+  if(k) document.getElementById('apiKey').value = k;
+  const cp = localStorage.getItem('syllabusai_prompts');
+  if(cp) try{ customPrompts = JSON.parse(cp); }catch{}
   updateModelBadge();
+  buildPromptFields();
 });
 
 function saveApiKey(){ localStorage.setItem('syllabusai_key', document.getElementById('apiKey').value); }
-
 function updateModelBadge(){
   const m = document.getElementById('modelSel').value;
-  document.getElementById('modelBadge').textContent = MODEL_INFO[m] || m;
+  document.getElementById('modelBadge').textContent = MODEL_INFO[m]||m;
 }
-
 function setRegion(code){
   currentRegion = code;
-  document.querySelectorAll('.region-chip').forEach(c => c.classList.toggle('active', c.dataset.region === code));
+  document.querySelectorAll('.region-chip').forEach(c=>c.classList.toggle('active', c.dataset.region===code));
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════
+// PROMPTS PANEL
+// ═══════════════════════════════════════════════
+function buildPromptFields(){
+  const container = document.getElementById('promptFields');
+  const labels = {ctx:'Agente 1 — Contextualizador',comp:'Agente 2 — Competencias',rda:'Agente 3 — Resultados de Aprendizaje',tema:'Agente 4 — Temario',eval:'Agente 5 — Evaluación',final:'Agente 6 — Redactor Final'};
+  container.innerHTML = Object.entries(labels).map(([id, label])=>`
+    <div class="prompt-agent">
+      <div class="prompt-agent-label">
+        <strong>${label}</strong>
+        <span class="pa-badge">${AGENTS_DEF.find(a=>a.id===id)?.icon||''}</span>
+      </div>
+      <textarea class="prompt-textarea" id="pt_${id}" oninput="saveCustomPrompt('${id}',this.value)">${escHtml(customPrompts[id]||DEFAULT_PROMPTS[id])}</textarea>
+      <div class="prompt-hint">Los datos del formulario (asignatura, titulación, créditos, contexto de agentes anteriores) se añaden automáticamente al final del prompt.</div>
+    </div>`).join('');
+}
+
+function saveCustomPrompt(id, val){
+  customPrompts[id] = val;
+  localStorage.setItem('syllabusai_prompts', JSON.stringify(customPrompts));
+}
+
+function resetPrompts(e){
+  e.stopPropagation();
+  if(!confirm('¿Restablecer todos los prompts a los valores originales?')) return;
+  customPrompts = {...DEFAULT_PROMPTS};
+  localStorage.removeItem('syllabusai_prompts');
+  buildPromptFields();
+  showToast('✅ Prompts restablecidos');
+}
+
+function togglePrompts(){
+  const header = document.getElementById('promptsHeader');
+  const body = document.getElementById('promptsBody');
+  header.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════
+// VIEW NAVIGATION
+// ═══════════════════════════════════════════════
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function goToForm(){ showView('viewForm'); }
+
+// ═══════════════════════════════════════════════
 // INDEXEDDB
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 function initDB(){
-  const req = indexedDB.open('SyllabusAI', 1);
-  req.onupgradeneeded = e => e.target.result.createObjectStore('syllabi', { keyPath:'id', autoIncrement:true });
-  req.onsuccess = e => { db = e.target.result; };
+  const req = indexedDB.open('SyllabusAI',1);
+  req.onupgradeneeded = e=>e.target.result.createObjectStore('syllabi',{keyPath:'id',autoIncrement:true});
+  req.onsuccess = e=>{ db=e.target.result; };
 }
-
 function saveToDB(data){
-  if (!db) return;
-  const tx = db.transaction('syllabi','readwrite');
-  tx.objectStore('syllabi').add({ ...data, savedAt: new Date().toISOString() });
+  if(!db) return;
+  db.transaction('syllabi','readwrite').objectStore('syllabi').add({...data, savedAt:new Date().toISOString()});
 }
-
 function loadHistory(cb){
-  if (!db) return cb([]);
-  const tx = db.transaction('syllabi','readonly');
-  const req = tx.objectStore('syllabi').getAll();
-  req.onsuccess = e => cb(e.target.result.reverse());
+  if(!db) return cb([]);
+  const req = db.transaction('syllabi','readonly').objectStore('syllabi').getAll();
+  req.onsuccess = e=>cb(e.target.result.reverse());
 }
 
-function deleteFromDB(id){
-  if (!db) return;
-  const tx = db.transaction('syllabi','readwrite');
-  tx.objectStore('syllabi').delete(id);
-}
-
-// ─────────────────────────────────────────────
-// HISTORY PANEL
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════
 function toggleHistory(){
   const panel = document.getElementById('historyPanel');
   const overlay = document.getElementById('overlay');
-  const isOpen = panel.classList.contains('open');
-  if (!isOpen) {
-    loadHistory(items => {
+  if(!panel.classList.contains('open')){
+    loadHistory(items=>{
       const list = document.getElementById('historyList');
-      if (!items.length){ list.innerHTML = '<div class="history-empty">📭 Sin guías guardadas aún.<br>Genera tu primera guía docente.</div>'; return; }
-      list.innerHTML = items.map(it => `
+      if(!items.length){ list.innerHTML='<div class="history-empty">📭 Sin guías guardadas aún.</div>'; return; }
+      list.innerHTML = items.map(it=>`
         <div class="history-item" onclick="loadHistoryItem(${it.id})">
-          <div class="history-item-title">${it.asignatura}</div>
-          <div class="history-item-meta">${it.titulacion} · ${it.creditos} créditos · ${it.region}<br>${new Date(it.savedAt).toLocaleString('es-ES')}</div>
+          <div class="history-item-title">${escHtml(it.asignatura)}</div>
+          <div class="history-item-meta">${escHtml(it.titulacion||'')} · ${it.creditos} créditos · ${it.region}<br>${new Date(it.savedAt).toLocaleString('es-ES')}</div>
         </div>`).join('');
     });
   }
   panel.classList.toggle('open');
   overlay.classList.toggle('show');
 }
-
 function loadHistoryItem(id){
-  loadHistory(items => {
-    const item = items.find(i => i.id === id);
-    if (item){ currentSyllabusData = item; renderSyllabus(item); toggleHistory(); }
+  loadHistory(items=>{
+    const item = items.find(i=>i.id===id);
+    if(item){ currentSyllabusData=item; renderSyllabus(item); toggleHistory(); showView('viewResult'); }
   });
 }
 
-// ─────────────────────────────────────────────
-// MAIN GENERATION PIPELINE
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════
+// MAIN GENERATION
+// ═══════════════════════════════════════════════
 async function generateSyllabus(){
   const apiKey = document.getElementById('apiKey').value.trim();
-  if (!apiKey){ document.getElementById('apiWarning').classList.add('show'); showToast('⚠️ Introduce tu API Key primero'); return; }
+  if(!apiKey){ document.getElementById('apiWarning').classList.add('show'); showToast('⚠️ Introduce tu API Key primero'); return; }
   document.getElementById('apiWarning').classList.remove('show');
-
   const asignatura = document.getElementById('fAsignatura').value.trim();
-  if (!asignatura){ showToast('⚠️ El nombre de la asignatura es obligatorio'); return; }
+  if(!asignatura){ showToast('⚠️ El nombre de la asignatura es obligatorio'); return; }
 
   const inputs = {
     apiKey, asignatura,
-    titulacion: document.getElementById('fTitulacion').value.trim() || 'No especificada',
+    titulacion: document.getElementById('fTitulacion').value.trim()||'No especificada',
     creditos: document.getElementById('fCreditos').value,
     curso: document.getElementById('fCurso').value,
     tipo: document.getElementById('fTipo').value,
@@ -533,641 +636,394 @@ async function generateSyllabus(){
     terms: REGION_TERMS[currentRegion],
   };
 
-  // UI: show progress
-  document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('resultWrap').classList.remove('active');
-  document.getElementById('integrationBanner').classList.remove('show');
-  showProgress();
-
-  const btn = document.getElementById('btnGen');
-  btn.disabled = true;
+  // Switch to generating view
+  initGeneratingView(inputs);
+  showView('viewGenerating');
+  document.getElementById('btnGen').disabled = true;
   document.getElementById('btnGenText').textContent = 'Generando…';
 
-  try {
+  try{
     const result = await runPipeline(inputs);
-    currentSyllabusData = { ...result, id: undefined };
-    saveToDB(currentSyllabusData);
-    hideProgress();
-    renderSyllabus(currentSyllabusData);
-    document.getElementById('integrationBanner').classList.add('show');
-    showToast('✅ Guía docente generada y guardada');
+    currentSyllabusData = result;
+    saveToDB(result);
+    // Transition to result
+    document.getElementById('genTitle').textContent = '✅ Guía completada';
+    document.getElementById('genSubtitle').textContent = 'Todos los agentes han terminado. Cargando vista final…';
+    await sleep(800);
+    renderSyllabus(result);
+    document.getElementById('resultTitle').textContent = `${result.terms?.guia||'Guía Docente'}: ${result.asignatura}`;
+    showView('viewResult');
+    showToast('✅ Guía generada y guardada');
   } catch(err){
-    hideProgress();
-    showToast('❌ Error: ' + err.message);
-    document.getElementById('emptyState').style.display = 'block';
+    showToast('❌ Error: '+err.message);
+    showView('viewForm');
   } finally {
-    btn.disabled = false;
+    document.getElementById('btnGen').disabled = false;
     document.getElementById('btnGenText').textContent = 'Generar Guía Docente';
-    document.getElementById('btnGenIcon').textContent = '✨';
   }
 }
 
-function showProgress(){
-  const wrap = document.getElementById('progressWrap');
-  wrap.classList.add('active');
-  const grid = document.getElementById('agentsGrid');
-  grid.innerHTML = AGENTS.map(a => `
+function initGeneratingView(inputs){
+  // Agents row
+  document.getElementById('agentsRow').innerHTML = AGENTS_DEF.map(a=>`
     <div class="agent-card pending" id="agent-${a.id}">
+      <div class="a-icon">${a.icon}</div>
       <div class="a-name">${a.name}</div>
       <div class="a-status">${a.desc}</div>
     </div>`).join('');
   setProgress(0);
+  document.getElementById('genTitle').textContent = `⏳ Generando: ${inputs.asignatura}`;
+  document.getElementById('genSubtitle').textContent = 'Los agentes están procesando. La guía aparece aquí conforme se genera.';
+
+  // Live preview sections
+  document.getElementById('livePreview').innerHTML = LIVE_SECTIONS.map(s=>`
+    <div class="live-section" id="${s.id}">
+      <div class="live-section-header" onclick="toggleLiveSection('${s.id}')">
+        <span class="ls-icon">${s.icon}</span>
+        <span class="ls-title">${s.title}</span>
+        <span class="ls-status waiting" id="${s.id}-status">En espera</span>
+        <span class="ls-chevron">▼</span>
+      </div>
+      <div class="live-section-body" id="${s.id}-body">
+        <div class="skeleton wide"></div><div class="skeleton med"></div><div class="skeleton short"></div>
+      </div>
+    </div>`).join('');
 }
 
-function hideProgress(){ document.getElementById('progressWrap').classList.remove('active'); }
-
-function setAgentState(id, state, msg){
-  const el = document.getElementById('agent-'+id);
-  if (!el) return;
-  el.className = 'agent-card ' + state;
-  el.querySelector('.a-status').textContent = msg || AGENTS.find(a=>a.id===id)?.desc || '';
+function toggleLiveSection(id){
+  document.getElementById(id).classList.toggle('expanded');
 }
 
-function setProgress(pct){ document.getElementById('progressBar').style.width = pct+'%'; }
+function setLiveSectionLoading(sectionId){
+  const el = document.getElementById(sectionId+'-status');
+  if(el){ el.textContent='Generando…'; el.className='ls-status loading'; }
+  document.getElementById(sectionId).classList.add('expanded');
+}
 
-// ─────────────────────────────────────────────
+function setLiveSectionReady(sectionId, htmlContent){
+  const status = document.getElementById(sectionId+'-status');
+  const body = document.getElementById(sectionId+'-body');
+  if(status){ status.textContent='✓ Listo'; status.className='ls-status ready'; }
+  if(body){ body.innerHTML = htmlContent; }
+}
+
+// ═══════════════════════════════════════════════
 // PIPELINE
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 async function runPipeline(inp){
-  const { apiKey, model } = inp;
+  const {apiKey, model} = inp;
   let ctx = {};
 
-  // AGENT 1: Context analyzer
-  setAgentState('ctx','running','Analizando contexto…');
-  const ctxPrompt = buildContextPrompt(inp);
-  const ctxRes = await callOpenAI(apiKey, model, ctxPrompt);
-  ctx.contexto = ctxRes;
-  setAgentState('ctx','done','✓ Contexto analizado'); setProgress(16);
+  // Agent 1
+  setAgentState('ctx','running','Analizando…'); setLiveSectionLoading('ls-ctx');
+  ctx.contexto = await callOpenAI(apiKey, model, buildPrompt('ctx', inp, ctx));
+  setAgentState('ctx','done','✓ Listo'); setProgress(16);
+  setLiveSectionReady('ls-ctx', liveCtx(ctx.contexto));
 
-  // AGENT 2: Competencias
-  setAgentState('comp','running','Definiendo competencias…');
-  const compRes = await callOpenAI(apiKey, model, buildCompetenciasPrompt(inp, ctx));
-  ctx.competencias = compRes;
-  setAgentState('comp','done','✓ Competencias definidas'); setProgress(32);
+  // Agent 2
+  setAgentState('comp','running','Generando…'); setLiveSectionLoading('ls-comp');
+  ctx.competencias = await callOpenAI(apiKey, model, buildPrompt('comp', inp, ctx));
+  setAgentState('comp','done','✓ Listo'); setProgress(32);
+  setLiveSectionReady('ls-comp', liveComp(ctx.competencias));
 
-  // AGENT 3: Resultados de Aprendizaje
-  setAgentState('rda','running','Redactando RdA…');
-  const rdaRes = await callOpenAI(apiKey, model, buildRdaPrompt(inp, ctx));
-  ctx.rda = rdaRes;
-  setAgentState('rda','done','✓ RdA generados'); setProgress(48);
+  // Agent 3
+  setAgentState('rda','running','Redactando…'); setLiveSectionLoading('ls-rda');
+  ctx.rda = await callOpenAI(apiKey, model, buildPrompt('rda', inp, ctx));
+  setAgentState('rda','done','✓ Listo'); setProgress(48);
+  setLiveSectionReady('ls-rda', liveRda(ctx.rda));
 
-  // AGENT 4: Temario
-  setAgentState('tema','running','Estructurando temario…');
-  const temaRes = await callOpenAI(apiKey, model, buildTemarioPrompt(inp, ctx));
-  ctx.temario = temaRes;
-  setAgentState('tema','done','✓ Temario estructurado'); setProgress(64);
+  // Agent 4
+  setAgentState('tema','running','Estructurando…'); setLiveSectionLoading('ls-tema');
+  ctx.temario = await callOpenAI(apiKey, model, buildPrompt('tema', inp, ctx));
+  setAgentState('tema','done','✓ Listo'); setProgress(64);
+  setLiveSectionReady('ls-tema', liveTema(ctx.temario));
 
-  // AGENT 5: Evaluación
-  setAgentState('eval','running','Diseñando evaluación…');
-  const evalRes = await callOpenAI(apiKey, model, buildEvaluacionPrompt(inp, ctx));
-  ctx.evaluacion = evalRes;
-  setAgentState('eval','done','✓ Evaluación diseñada'); setProgress(80);
+  // Agent 5
+  setAgentState('eval','running','Diseñando…'); setLiveSectionLoading('ls-eval');
+  ctx.evaluacion = await callOpenAI(apiKey, model, buildPrompt('eval', inp, ctx));
+  setAgentState('eval','done','✓ Listo'); setProgress(80);
+  setLiveSectionReady('ls-eval', liveEval(ctx.evaluacion));
 
-  // AGENT 6: Final synthesis
-  setAgentState('final','running','Integrando guía final…');
-  const finalRes = await callOpenAI(apiKey, model, buildFinalPrompt(inp, ctx));
-  ctx.final = finalRes;
-  setAgentState('final','done','✓ Guía completa'); setProgress(100);
+  // Agent 6
+  setAgentState('final','running','Integrando…'); setLiveSectionLoading('ls-final');
+  ctx.final = await callOpenAI(apiKey, model, buildPrompt('final', inp, ctx));
+  setAgentState('final','done','✓ Listo'); setProgress(100);
+  setLiveSectionReady('ls-final', liveFinal(ctx.final));
 
-  return parseFinalOutput(inp, ctx);
-}
-
-// ─────────────────────────────────────────────
-// PROMPTS
-// ─────────────────────────────────────────────
-function buildContextPrompt(inp){
-  const t = inp.terms;
-  return `Eres un experto en diseño curricular universitario para el contexto de ${inp.region === 'ES' ? 'España' : 'Iberoamérica'}.
-Analiza esta asignatura y devuelve un JSON con:
-{
-  "descripcion": "párrafo de 3-4 líneas describiendo la asignatura y su relevancia en la titulación",
-  "requisitos_previos": "conocimientos recomendados (o 'Ninguno' si es 1º curso)",
-  "perfil_estudiante": "breve descripción del perfil del estudiante al que va dirigida",
-  "observaciones": "notas relevantes para el diseño curricular"
-}
-
-Datos:
-- Asignatura: ${inp.asignatura}
-- Titulación: ${inp.titulacion}
-- Créditos: ${inp.creditos} (${t.creditos})
-- Curso: ${inp.curso} | Tipo: ${inp.tipo} | Semestre: ${inp.semestre}
-- Modalidad: ${inp.modalidad}
-- Departamento: ${inp.departamento || 'no especificado'}
-- Temario previo: ${inp.temario || 'no proporcionado'}
-- Idioma salida: ${inp.idioma}
-
-Responde SOLO con el JSON, sin markdown ni explicaciones.`;
-}
-
-function buildCompetenciasPrompt(inp, ctx){
-  const t = inp.terms;
-  return `Eres un experto en diseño de competencias universitarias bajo el marco ${inp.marco}.
-Genera competencias para esta asignatura y devuelve JSON:
-{
-  "genericas": [
-    {"codigo":"CG1","texto":"..."},
-    {"codigo":"CG2","texto":"..."}
-  ],
-  "especificas": [
-    {"codigo":"CE1","texto":"..."},
-    {"codigo":"CE2","texto":"..."},
-    {"codigo":"CE3","texto":"..."},
-    {"codigo":"CE4","texto":"..."}
-  ]
-}
-
-Contexto de la asignatura:
-- Nombre: ${inp.asignatura}
-- Titulación: ${inp.titulacion} · ${inp.curso} · ${inp.tipo}
-- Créditos: ${inp.creditos} | Modalidad: ${inp.modalidad}
-- Descripción: ${safeJson(ctx.contexto, 'descripcion')}
-- Marco: ${inp.marco}
-- Terminología: usar "${t.creditos}" para créditos
-- Idioma: ${inp.idioma}
-
-Reglas: Las CG deben ser transversales (comunicación, trabajo en equipo, pensamiento crítico, etc.). Las CE deben ser específicas y medibles para esta asignatura concreta. Usa verbos de acción (analizar, diseñar, aplicar, evaluar…).
-
-Responde SOLO con el JSON.`;
-}
-
-function buildRdaPrompt(inp, ctx){
-  return `Eres un experto en taxonomía de Bloom aplicada a educación superior universitaria.
-Genera los Resultados de Aprendizaje (RdA) para esta asignatura usando los niveles de Bloom apropiados.
-
-Devuelve JSON:
-{
-  "resultados": [
-    {"nivel":"Comprensión","bloom":"Nivel 2","texto":"Al finalizar la asignatura, el estudiante será capaz de..."},
-    {"nivel":"Aplicación","bloom":"Nivel 3","texto":"..."},
-    {"nivel":"Análisis","bloom":"Nivel 4","texto":"..."},
-    {"nivel":"Evaluación","bloom":"Nivel 5","texto":"..."},
-    {"nivel":"Creación","bloom":"Nivel 6","texto":"..."}
-  ]
-}
-
-Asignatura: ${inp.asignatura} | Titulación: ${inp.titulacion} | Curso: ${inp.curso}
-Competencias específicas: ${safeJson(ctx.competencias, 'especificas', true)}
-Idioma: ${inp.idioma}
-
-Los RdA deben empezar con "Al finalizar la asignatura, el estudiante será capaz de [verbo Bloom]...". Usa verbos concretos y medibles. Asegúrate de que cada RdA se pueda evaluar.
-
-Responde SOLO con el JSON.`;
-}
-
-function buildTemarioPrompt(inp, ctx){
-  const hTotal = Math.round(inp.creditos * 25);
-  const hClase = Math.round(hTotal * 0.4);
-  return `Eres un experto en planificación curricular universitaria.
-Estructura el temario de esta asignatura en bloques y temas.
-
-Devuelve JSON:
-{
-  "horas_totales": ${hTotal},
-  "horas_presenciales": ${hClase},
-  "horas_no_presenciales": ${hTotal - hClase},
-  "bloques": [
-    {
-      "numero": 1,
-      "titulo": "...",
-      "horas": 10,
-      "temas": [
-        {"num":"1.1","titulo":"...","horas_teoria":2,"horas_practica":1},
-        {"num":"1.2","titulo":"...","horas_teoria":2,"horas_practica":2}
-      ]
-    }
-  ]
-}
-
-Asignatura: ${inp.asignatura} | Créditos: ${inp.creditos} | Semestre: ${inp.semestre}
-Temario sugerido por el docente: ${inp.temario || 'no proporcionado — genera uno coherente con la titulación'}
-Metodología: ${inp.metodologia}
-RdA a cubrir: ${safeJson(ctx.rda, 'resultados', true)}
-Idioma: ${inp.idioma}
-
-Distribuye el tiempo de forma equilibrada. Las horas de todos los bloques deben sumar aproximadamente ${hClase} horas presenciales. Organiza en 4-6 bloques temáticos.
-
-Responde SOLO con el JSON.`;
-}
-
-function buildEvaluacionPrompt(inp, ctx){
-  const t = inp.terms;
-  return `Eres un experto en sistemas de evaluación universitaria alineada con competencias.
-Diseña el sistema de evaluación para esta asignatura.
-
-Devuelve JSON:
-{
-  "descripcion_general": "párrafo breve sobre el enfoque evaluativo",
-  "instrumentos": [
-    {"instrumento":"${t.examen} final","descripcion":"...","peso":40,"competencias_evaluadas":"CE1, CE2","criterios":"..."},
-    {"instrumento":"Prácticas / Laboratorio","descripcion":"...","peso":30,"competencias_evaluadas":"CE3","criterios":"..."},
-    {"instrumento":"Trabajos y actividades","descripcion":"...","peso":20,"competencias_evaluadas":"CE2, CE4","criterios":"..."},
-    {"instrumento":"Participación activa","descripcion":"...","peso":10,"competencias_evaluadas":"CG1","criterios":"..."}
-  ],
-  "nota_minima": "5 sobre 10",
-  "criterios_superacion": "Para superar la asignatura se requiere...",
-  "convocatorias": "Información sobre convocatoria ordinaria y extraordinaria"
-}
-
-Asignatura: ${inp.asignatura} | Modalidad: ${inp.modalidad} | Metodología: ${inp.metodologia}
-Marco normativo: ${t.norm}
-Competencias: ${safeJson(ctx.competencias, 'especificas', true)}
-Idioma: ${inp.idioma}
-
-Los pesos deben sumar exactamente 100. Asegúrate de que los instrumentos sean coherentes con la modalidad y metodología.
-
-Responde SOLO con el JSON.`;
-}
-
-function buildFinalPrompt(inp, ctx){
-  const t = inp.terms;
-  const semanas = Math.round(inp.creditos === '6' ? 15 : inp.creditos * 2.5);
-  return `Eres un experto en guías docentes universitarias. Genera las secciones finales de la guía.
-
-Devuelve JSON:
-{
-  "metodologia_detallada": "Descripción de 3-4 párrafos de la metodología docente, actividades presenciales y no presenciales, recursos y herramientas.",
-  "recursos": ["recurso1","recurso2","recurso3","recurso4"],
-  "cronograma": [
-    {"semana":"1-3","bloque":"Bloque 1: ...","actividades":"...","evaluacion":""},
-    {"semana":"4-7","bloque":"Bloque 2: ...","actividades":"...","evaluacion":"Práctica 1"},
-    {"semana":"8-11","bloque":"Bloque 3: ...","actividades":"...","evaluacion":""},
-    {"semana":"12-14","bloque":"Bloque 4: ...","actividades":"...","evaluacion":"Trabajo final"},
-    {"semana":"15","bloque":"Revisión y preparación","actividades":"Repaso integrador","evaluacion":"${t.examen} final"}
-  ],
-  "tutoria": "Información sobre tutorías presenciales y virtuales.",
-  "informacion_adicional": "Requisitos de asistencia, normas de conducta académica, política de integridad académica."
-}
-
-Asignatura: ${inp.asignatura} | Metodología base: ${inp.metodologia}
-Bloques temáticos: ${safeJson(ctx.temario, 'bloques', true)}
-Bibliografía del docente: ${inp.biblio || 'Genera bibliografía básica coherente con la asignatura'}
-Idioma: ${inp.idioma}
-
-El cronograma debe tener ${Math.min(5, Math.ceil(semanas/3))} filas que cubran aproximadamente ${semanas} semanas.
-
-Responde SOLO con el JSON.`;
-}
-
-// ─────────────────────────────────────────────
-// OPENAI CALL
-// ─────────────────────────────────────────────
-async function callOpenAI(apiKey, model, prompt){
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+apiKey },
-    body: JSON.stringify({
-      model,
-      temperature: 0.7,
-      max_tokens: 2500,
-      messages:[{ role:'user', content: prompt }],
-      response_format: { type: 'json_object' }
-    })
-  });
-  if (!res.ok){ const e = await res.json(); throw new Error(e.error?.message || res.statusText); }
-  const data = await res.json();
-  try { return JSON.parse(data.choices[0].message.content); }
-  catch { return data.choices[0].message.content; }
-}
-
-// ─────────────────────────────────────────────
-// PARSE FINAL OUTPUT
-// ─────────────────────────────────────────────
-function parseFinalOutput(inp, ctx){
   return {
-    asignatura: inp.asignatura,
-    titulacion: inp.titulacion,
-    creditos: inp.creditos,
-    curso: inp.curso,
-    tipo: inp.tipo,
-    semestre: inp.semestre,
-    modalidad: inp.modalidad,
-    departamento: inp.departamento,
-    idioma: inp.idioma,
-    region: inp.region,
-    model: inp.model,
-    terms: inp.terms,
-    contexto: ctx.contexto,
-    competencias: ctx.competencias,
-    rda: ctx.rda,
-    temario: ctx.temario,
-    evaluacion: ctx.evaluacion,
-    final: ctx.final,
-    generatedAt: new Date().toISOString(),
+    asignatura:inp.asignatura, titulacion:inp.titulacion, creditos:inp.creditos,
+    curso:inp.curso, tipo:inp.tipo, semestre:inp.semestre, modalidad:inp.modalidad,
+    departamento:inp.departamento, idioma:inp.idioma, region:inp.region,
+    model:inp.model, terms:inp.terms,
+    contexto:ctx.contexto, competencias:ctx.competencias, rda:ctx.rda,
+    temario:ctx.temario, evaluacion:ctx.evaluacion, final:ctx.final,
+    generatedAt:new Date().toISOString(),
   };
 }
 
-// ─────────────────────────────────────────────
-// RENDER SYLLABUS
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════
+// PROMPT BUILDER (combina rol personalizable + datos)
+// ═══════════════════════════════════════════════
+function buildPrompt(agentId, inp, ctx){
+  const base = (customPrompts[agentId]||DEFAULT_PROMPTS[agentId])
+    .replace(/\{\{ASIGNATURA\}\}/g, inp.asignatura)
+    .replace(/\{\{TITULACION\}\}/g, inp.titulacion)
+    .replace(/\{\{CREDITOS\}\}/g, inp.creditos)
+    .replace(/\{\{REGION\}\}/g, inp.region)
+    .replace(/\{\{IDIOMA\}\}/g, inp.idioma);
+
+  const t = inp.terms;
+  const hTotal = Math.round(inp.creditos * 25);
+  const hClase = Math.round(hTotal * 0.4);
+  const semanas = Math.round(inp.creditos == 6 ? 15 : inp.creditos * 2.5);
+
+  const dataBlock = {
+    ctx:`\n\nDatos de la asignatura:\n- Nombre: ${inp.asignatura}\n- Titulación: ${inp.titulacion}\n- Créditos: ${inp.creditos} (${t.creditos})\n- Curso: ${inp.curso} | Tipo: ${inp.tipo} | Semestre: ${inp.semestre}\n- Modalidad: ${inp.modalidad}\n- Departamento: ${inp.departamento||'no especificado'}\n- Temario previo: ${inp.temario||'no proporcionado'}\n- Idioma salida: ${inp.idioma}\n- Contexto regional: ${inp.region} (${t.norm})`,
+
+    comp:`\n\nDatos:\n- Asignatura: ${inp.asignatura} · ${inp.titulacion} · ${inp.curso}\n- Créditos: ${inp.creditos} | Modalidad: ${inp.modalidad}\n- Descripción: ${safeJson(ctx.contexto,'descripcion')}\n- Marco: ${inp.marco}\n- Idioma: ${inp.idioma}`,
+
+    rda:`\n\nDatos:\n- Asignatura: ${inp.asignatura} | Titulación: ${inp.titulacion} | Curso: ${inp.curso}\n- Competencias específicas: ${safeJson(ctx.competencias,'especificas',true)}\n- Idioma: ${inp.idioma}`,
+
+    tema:`\n\nDatos:\n- Asignatura: ${inp.asignatura} | Créditos: ${inp.creditos} | Semestre: ${inp.semestre}\n- Horas totales: ${hTotal} | Presenciales: ${hClase} | No presenciales: ${hTotal-hClase}\n- Temario docente: ${inp.temario||'no proporcionado'}\n- Metodología: ${inp.metodologia}\n- RdA: ${safeJson(ctx.rda,'resultados',true)}\n- Idioma: ${inp.idioma}\nSustituye horas_totales, horas_presenciales, horas_no_presenciales en el JSON por ${hTotal}, ${hClase}, ${hTotal-hClase}.`,
+
+    eval:`\n\nDatos:\n- Asignatura: ${inp.asignatura} | Modalidad: ${inp.modalidad} | Metodología: ${inp.metodologia}\n- Marco normativo: ${t.norm}\n- Competencias específicas: ${safeJson(ctx.competencias,'especificas',true)}\n- Idioma: ${inp.idioma}\n- Usa "${t.examen}" como nombre del examen final.`,
+
+    final:`\n\nDatos:\n- Asignatura: ${inp.asignatura} | Metodología: ${inp.metodologia}\n- Bloques temáticos: ${safeJson(ctx.temario,'bloques',true)}\n- Bibliografía docente: ${inp.biblio||'genera bibliografía básica coherente'}\n- Idioma: ${inp.idioma}\nEl cronograma debe tener ${Math.min(5,Math.ceil(semanas/3))} filas cubriendo ${semanas} semanas.`,
+  };
+
+  return base + (dataBlock[agentId]||'');
+}
+
+// ═══════════════════════════════════════════════
+// LIVE SECTION RENDERERS (vista compacta durante generación)
+// ═══════════════════════════════════════════════
+function liveCtx(d){
+  const desc = safeJson(d,'descripcion','');
+  const req = safeJson(d,'requisitos_previos','');
+  return `<p style="color:var(--ink)">${escHtml(desc)}</p>${req?`<p style="margin-top:8px;color:var(--ink-soft);font-size:13px"><strong>Requisitos previos:</strong> ${escHtml(req)}</p>`:''}`;
+}
+function liveComp(d){
+  const cg = safeArr(d,'genericas'), ce = safeArr(d,'especificas');
+  let h = '';
+  if(cg.length) h += `<p style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:6px">Genéricas</p>`+cg.map(c=>`<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="background:var(--accent-lt);color:var(--accent-dk);border-radius:3px;padding:1px 6px;font-size:11px;font-weight:700;white-space:nowrap">${escHtml(c.codigo||'CG')}</span><span>${escHtml(c.texto||c)}</span></div>`).join('');
+  if(ce.length) h += `<p style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;margin:10px 0 6px">Específicas</p>`+ce.map(c=>`<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="background:var(--purple-lt);color:var(--purple);border-radius:3px;padding:1px 6px;font-size:11px;font-weight:700;white-space:nowrap">${escHtml(c.codigo||'CE')}</span><span>${escHtml(c.texto||c)}</span></div>`).join('');
+  return h||'<p>Competencias generadas.</p>';
+}
+function liveRda(d){
+  const rdas = safeArr(d,'resultados');
+  return rdas.map(r=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--green);font-weight:700;flex-shrink:0">✦</span><span><strong>${escHtml(r.nivel||'')}</strong>${r.nivel?' — ':''}${escHtml(r.texto||r)}</span></div>`).join('')||'<p>RdA generados.</p>';
+}
+function liveTema(d){
+  const bloques = safeArr(d,'bloques');
+  let h = `<p style="font-size:12px;color:#888;margin-bottom:10px">Total: ${d?.horas_totales||'—'}h · Presenciales: ${d?.horas_presenciales||'—'}h · No presenciales: ${d?.horas_no_presenciales||'—'}h</p>`;
+  bloques.forEach(b=>{
+    h+=`<p style="font-weight:700;color:var(--ink);margin:10px 0 4px">Bloque ${b.numero||''}: ${escHtml(b.titulo||'')} <span style="color:#888;font-weight:400;font-size:12px">(${b.horas||''}h)</span></p>`;
+    (b.temas||[]).forEach(t2=>{ h+=`<div style="display:flex;gap:8px;padding:3px 0;font-size:13px;border-bottom:1px solid var(--border)"><span style="background:var(--ink);color:#fff;border-radius:3px;padding:1px 6px;font-size:11px;font-weight:700;white-space:nowrap">${escHtml(t2.num||'—')}</span><span>${escHtml(t2.titulo||t2)}</span></div>`; });
+  });
+  return h;
+}
+function liveEval(d){
+  const inst = safeArr(d,'instrumentos');
+  if(!inst.length) return '<p>Evaluación generada.</p>';
+  return `<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr>${['Instrumento','Peso','Competencias'].map(h=>`<th style="background:var(--accent);color:#fff;padding:6px 10px;text-align:left;font-size:11.5px">${h}</th>`).join('')}</tr></thead><tbody>${inst.map((r,i)=>`<tr style="${i%2?'background:var(--surface)':''}"><td style="padding:6px 10px;border-bottom:1px solid var(--border)"><strong>${escHtml(r.instrumento||'')}</strong></td><td style="padding:6px 10px;border-bottom:1px solid var(--border);font-weight:700;color:var(--accent)">${r.peso||0}%</td><td style="padding:6px 10px;border-bottom:1px solid var(--border);color:var(--ink-soft)">${escHtml(r.competencias_evaluadas||'')}</td></tr>`).join('')}</tbody></table>`;
+}
+function liveFinal(d){
+  const met = safeJson(d,'metodologia_detallada','');
+  const cron = safeArr(d,'cronograma');
+  let h = `<p style="font-size:13.5px;color:var(--ink);line-height:1.7;margin-bottom:12px">${escHtml(met.substring(0,400))}${met.length>400?'…':''}</p>`;
+  if(cron.length){ h+=`<p style="font-size:11px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px">Cronograma</p><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>${['Semanas','Bloque','Evaluación'].map(t=>`<th style="background:var(--ink-soft);color:#fff;padding:5px 8px;text-align:left">${t}</th>`).join('')}</tr></thead><tbody>${cron.map((r,i)=>`<tr style="${i%2?'background:var(--surface)':''}"><td style="padding:5px 8px;border-bottom:1px solid var(--border);font-weight:700;white-space:nowrap">${escHtml(r.semana||'')}</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">${escHtml(r.bloque||'')}</td><td style="padding:5px 8px;border-bottom:1px solid var(--border);color:var(--ink-soft)">${escHtml(r.evaluacion||'')}</td></tr>`).join('')}</tbody></table>`; }
+  return h;
+}
+
+// ═══════════════════════════════════════════════
+// OPENAI CALL
+// ═══════════════════════════════════════════════
+async function callOpenAI(apiKey, model, prompt){
+  const res = await fetch('https://api.openai.com/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+    body:JSON.stringify({model, temperature:0.7, max_tokens:2500,
+      messages:[{role:'user',content:prompt}], response_format:{type:'json_object'}})
+  });
+  if(!res.ok){ const e=await res.json(); throw new Error(e.error?.message||res.statusText); }
+  const data = await res.json();
+  try{ return JSON.parse(data.choices[0].message.content); }
+  catch{ return data.choices[0].message.content; }
+}
+
+// ═══════════════════════════════════════════════
+// RENDER FINAL SYLLABUS (resultado completo)
+// ═══════════════════════════════════════════════
 function renderSyllabus(d){
-  const t = d.terms || REGION_TERMS[d.region] || REGION_TERMS.ES;
+  const t = d.terms||REGION_TERMS[d.region]||REGION_TERMS.ES;
   const preview = document.getElementById('syllabusPreview');
+  const chips = [d.titulacion,`${d.creditos} ${t.creditos}`,d.curso,d.tipo,d.semestre,d.modalidad,d.departamento].filter(Boolean).map(v=>`<div class="syl-meta-chip">${escHtml(v)}</div>`).join('');
 
-  // Header meta chips
-  const chips = [
-    d.titulacion, `${d.creditos} ${t.creditos}`, d.curso, d.tipo, d.semestre, d.modalidad, d.departamento
-  ].filter(Boolean).map(v => `<div class="syl-meta-chip">${v}</div>`).join('');
-
-  let html = `
-  <div class="syl-header">
-    <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#888;margin-bottom:6px">
-      ${t.guia} · <span class="badge-region">${d.region}</span>
-    </div>
-    <h1>${d.asignatura}</h1>
-    <div class="syl-meta">${chips}</div>
-  </div>`;
+  let html = `<div class="syl-header"><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#888;margin-bottom:6px">${t.guia} · <span class="badge-region">${d.region}</span></div><h1>${escHtml(d.asignatura)}</h1><div class="syl-meta">${chips}</div></div>`;
 
   // 1. Descripción
-  const desc = safeJson(d.contexto,'descripcion','');
-  html += section('1. Descripción de la asignatura', `<div class="syl-section-content">${desc}</div>`);
+  html += sec('1. Descripción',`<div class="syl-section-content">${escHtml(safeJson(d.contexto,'descripcion',''))}\n\n<strong>Requisitos previos:</strong> ${escHtml(safeJson(d.contexto,'requisitos_previos',''))}</div>`);
 
   // 2. Competencias
-  const cg = safeArr(d.competencias,'genericas');
-  const ce = safeArr(d.competencias,'especificas');
-  let compHtml = '';
-  if (cg.length){ compHtml += `<div style="font-weight:700;font-size:12px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Competencias Genéricas</div>`; cg.forEach(c=>{ compHtml+=`<div class="competencia-item"><span class="comp-code">${c.codigo||'CG'}</span><span>${c.texto||c}</span></div>`; }); }
-  if (ce.length){ compHtml += `<div style="font-weight:700;font-size:12px;color:#666;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.5px">Competencias Específicas</div>`; ce.forEach(c=>{ compHtml+=`<div class="competencia-item"><span class="comp-code" style="background:var(--purple-lt);color:var(--purple)">${c.codigo||'CE'}</span><span>${c.texto||c}</span></div>`; }); }
-  html += section('2. Competencias', compHtml || '<p>No generadas</p>');
+  const cg=safeArr(d.competencias,'genericas'), ce=safeArr(d.competencias,'especificas');
+  let compH='';
+  if(cg.length){ compH+=`<div style="font-weight:700;font-size:12px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Competencias Genéricas</div>`; cg.forEach(c=>{compH+=`<div class="competencia-item"><span class="comp-code">${escHtml(c.codigo||'CG')}</span><span>${escHtml(c.texto||c)}</span></div>`;}); }
+  if(ce.length){ compH+=`<div style="font-weight:700;font-size:12px;color:#666;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.5px">Competencias Específicas</div>`; ce.forEach(c=>{compH+=`<div class="competencia-item"><span class="comp-code" style="background:var(--purple-lt);color:var(--purple)">${escHtml(c.codigo||'CE')}</span><span>${escHtml(c.texto||c)}</span></div>`;}); }
+  html += sec('2. Competencias', compH||'<p>No generadas</p>');
 
   // 3. RdA
-  const rdas = safeArr(d.rda,'resultados');
-  const rdaHtml = rdas.map(r=>`<div class="rda-item"><span class="rda-bullet">✦</span><span><strong>${r.nivel||''}</strong>${r.nivel?' — ':''}${r.texto||r}</span></div>`).join('');
-  html += section('3. Resultados de Aprendizaje', rdaHtml || '<p>No generados</p>');
+  const rdas=safeArr(d.rda,'resultados');
+  html += sec('3. Resultados de Aprendizaje', rdas.map(r=>`<div class="rda-item"><span class="rda-bullet">✦</span><span><strong>${escHtml(r.nivel||'')}</strong>${r.nivel?' — ':''}${escHtml(r.texto||r)}</span></div>`).join('')||'<p>No generados</p>');
 
   // 4. Temario
-  const bloques = safeArr(d.temario,'bloques');
-  let temaHtml = '';
-  if(d.temario){ temaHtml+=`<div style="font-size:12px;color:#888;margin-bottom:12px">Total: ${d.temario.horas_totales||'—'}h · Presenciales: ${d.temario.horas_presenciales||'—'}h · No presenciales: ${d.temario.horas_no_presenciales||'—'}h</div>`; }
+  const bloques=safeArr(d.temario,'bloques');
+  let tH='';
+  if(d.temario) tH+=`<div style="font-size:12px;color:#888;margin-bottom:12px">Total: ${d.temario.horas_totales||'—'}h · Presenciales: ${d.temario.horas_presenciales||'—'}h · No presenciales: ${d.temario.horas_no_presenciales||'—'}h</div>`;
   bloques.forEach(b=>{
-    temaHtml+=`<div style="font-weight:700;margin:12px 0 6px;color:var(--ink)">${b.numero||''}. ${b.titulo||''} <span style="color:#888;font-weight:400;font-size:12px">(${b.horas||''}h)</span></div>`;
-    (b.temas||[]).forEach(t2=>{ temaHtml+=`<div class="tema-item"><span class="tema-num">${t2.num||'—'}</span><span style="flex:1">${t2.titulo||t2}</span><span class="tema-hours">${(t2.horas_teoria||0)+(t2.horas_practica||0)}h</span></div>`; });
+    tH+=`<div style="font-weight:700;margin:12px 0 6px;color:var(--ink)">${b.numero||''}. ${escHtml(b.titulo||'')} <span style="color:#888;font-weight:400;font-size:12px">(${b.horas||''}h)</span></div>`;
+    (b.temas||[]).forEach(t2=>{tH+=`<div class="tema-item"><span class="tema-num">${escHtml(t2.num||'—')}</span><span style="flex:1">${escHtml(t2.titulo||t2)}</span><span class="tema-hours">${(t2.horas_teoria||0)+(t2.horas_practica||0)}h</span></div>`;});
   });
-  html += section('4. Temario', temaHtml || '<p>No generado</p>');
+  html += sec('4. Temario', tH||'<p>No generado</p>');
 
   // 5. Metodología
-  const met = safeJson(d.final,'metodologia_detallada','');
-  html += section('5. Metodología Docente', `<div class="syl-section-content">${met}</div>`);
+  html += sec('5. Metodología',`<div class="syl-section-content">${escHtml(safeJson(d.final,'metodologia_detallada',''))}</div>`);
 
   // 6. Evaluación
-  const evalInst = safeArr(d.evaluacion,'instrumentos');
-  let evalHtml = `<table class="eval-table"><thead><tr><th>Instrumento</th><th>Descripción</th><th>Peso</th><th>Competencias</th></tr></thead><tbody>`;
-  evalInst.forEach(i=>{ evalHtml+=`<tr><td><strong>${i.instrumento||''}</strong></td><td>${i.descripcion||''}</td><td><strong>${i.peso||0}%</strong></td><td>${i.competencias_evaluadas||''}</td></tr>`; });
-  evalHtml+=`</tbody></table>`;
-  if(d.evaluacion?.criterios_superacion){ evalHtml+=`<div style="margin-top:12px;padding:10px 14px;background:var(--accent-lt);border-radius:6px;font-size:13px"><strong>Criterios de superación:</strong> ${d.evaluacion.criterios_superacion}</div>`; }
-  html += section('6. Sistema de Evaluación', evalHtml);
+  const inst=safeArr(d.evaluacion,'instrumentos');
+  let evalH=`<table class="eval-table"><thead><tr><th>Instrumento</th><th>Descripción</th><th>Peso</th><th>Competencias</th></tr></thead><tbody>`;
+  inst.forEach(i=>{evalH+=`<tr><td><strong>${escHtml(i.instrumento||'')}</strong></td><td>${escHtml(i.descripcion||'')}</td><td><strong>${i.peso||0}%</strong></td><td>${escHtml(i.competencias_evaluadas||'')}</td></tr>`;});
+  evalH+=`</tbody></table>`;
+  if(d.evaluacion?.criterios_superacion) evalH+=`<div style="margin-top:10px;padding:9px 13px;background:var(--accent-lt);border-radius:6px;font-size:13px"><strong>Criterios de superación:</strong> ${escHtml(d.evaluacion.criterios_superacion)}</div>`;
+  html += sec('6. Evaluación', evalH);
 
   // 7. Cronograma
-  const cron = safeArr(d.final,'cronograma');
-  let cronHtml = `<table class="cronograma-table"><thead><tr><th>Semanas</th><th>Bloque/Contenidos</th><th>Actividades</th><th>Evaluación</th></tr></thead><tbody>`;
-  cron.forEach(row=>{ cronHtml+=`<tr><td><strong>${row.semana||''}</strong></td><td>${row.bloque||''}</td><td>${row.actividades||''}</td><td>${row.evaluacion||''}</td></tr>`; });
-  cronHtml+=`</tbody></table>`;
-  html += section('7. Cronograma Orientativo', cronHtml);
-
-  // 8. Bibliografía / Recursos
-  const recursos = safeArr(d.final,'recursos');
-  const bibHtml = recursos.map(r=>`<div class="bib-item">📚 ${r}</div>`).join('') || '<p>Ver bibliografía específica en la plataforma docente</p>';
-  html += section('8. Bibliografía y Recursos', bibHtml);
-
-  // 9. Tutoría / Info adicional
-  const tut = safeJson(d.final,'tutoria','');
-  const info = safeJson(d.final,'informacion_adicional','');
-  html += section('9. Tutoría e Información Adicional', `<div class="syl-section-content">${tut}\n\n${info}</div>`);
-
-  preview.innerHTML = html;
-  document.getElementById('resultTitle').textContent = `${t.guia}: ${d.asignatura}`;
-  document.getElementById('resultWrap').classList.add('active');
-  preview.scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-function section(title, content){
-  return `<div class="syl-section"><div class="syl-section-title">${title}</div>${content}</div>`;
-}
-
-// ─────────────────────────────────────────────
-// EXPORT: WORD
-// ─────────────────────────────────────────────
-async function exportWord(){
-  if (!currentSyllabusData){ showToast('Genera una guía primero'); return; }
-  showToast('⏳ Generando documento Word…');
-  const d = currentSyllabusData;
-  const t = d.terms || REGION_TERMS[d.region] || REGION_TERMS.ES;
-
-  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-    AlignmentType, HeadingLevel, BorderStyle, WidthType, ShadingType,
-    LevelFormat, VerticalAlign } = docx;
-
-  const border = { style:BorderStyle.SINGLE, size:1, color:'CCCCCC' };
-  const borders = { top:border, bottom:border, left:border, right:border };
-
-  const h1 = txt => new Paragraph({ heading:HeadingLevel.HEADING_1, children:[new TextRun({ text:txt, bold:true, size:28, font:'Arial', color:'2D5BE3' })] });
-  const h2 = txt => new Paragraph({ heading:HeadingLevel.HEADING_2, children:[new TextRun({ text:txt, bold:true, size:24, font:'Arial' })] });
-  const body = txt => new Paragraph({ children:[new TextRun({ text:String(txt||''), size:22, font:'Arial' })], spacing:{ after:120 } });
-  const blank = () => new Paragraph({ children:[new TextRun('')], spacing:{ after:80 } });
-
-  const children = [];
-
-  // TITLE PAGE
-  children.push(new Paragraph({ alignment:AlignmentType.CENTER, children:[new TextRun({ text: t.guia.toUpperCase(), bold:true, size:36, font:'Arial', color:'2D5BE3' })], spacing:{ after:200 } }));
-  children.push(new Paragraph({ alignment:AlignmentType.CENTER, children:[new TextRun({ text: d.asignatura, bold:true, size:32, font:'Arial' })], spacing:{ after:160 } }));
-  children.push(new Paragraph({ alignment:AlignmentType.CENTER, children:[new TextRun({ text: d.titulacion, size:24, font:'Arial', color:'555555' })], spacing:{ after:100 } }));
-  children.push(new Paragraph({ alignment:AlignmentType.CENTER, children:[new TextRun({ text: `${d.creditos} ${t.creditos} · ${d.curso} · ${d.semestre}`, size:22, font:'Arial', color:'777777' })], spacing:{ after:80 } }));
-  children.push(new Paragraph({ alignment:AlignmentType.CENTER, children:[new TextRun({ text: `Modalidad: ${d.modalidad} | Tipo: ${d.tipo}`, size:22, font:'Arial', color:'777777' })], spacing:{ after:80 } }));
-  if(d.departamento) children.push(new Paragraph({ alignment:AlignmentType.CENTER, children:[new TextRun({ text:d.departamento, size:20, font:'Arial', color:'999999' })], spacing:{ after:300 } }));
-  children.push(blank());
-
-  // 1. Descripción
-  children.push(h1('1. Descripción de la Asignatura'));
-  children.push(body(safeJson(d.contexto,'descripcion','')));
-  children.push(body('Requisitos previos: ' + safeJson(d.contexto,'requisitos_previos','')));
-  children.push(blank());
-
-  // 2. Competencias
-  children.push(h1('2. Competencias'));
-  children.push(h2('2.1 Competencias Genéricas'));
-  safeArr(d.competencias,'genericas').forEach(c=>{ children.push(body(`[${c.codigo}] ${c.texto}`)); });
-  children.push(h2('2.2 Competencias Específicas'));
-  safeArr(d.competencias,'especificas').forEach(c=>{ children.push(body(`[${c.codigo}] ${c.texto}`)); });
-  children.push(blank());
-
-  // 3. RdA
-  children.push(h1('3. Resultados de Aprendizaje'));
-  safeArr(d.rda,'resultados').forEach(r=>{ children.push(body(`• [${r.nivel||''}] ${r.texto||r}`)); });
-  children.push(blank());
-
-  // 4. Temario
-  children.push(h1('4. Temario'));
-  safeArr(d.temario,'bloques').forEach(b=>{
-    children.push(h2(`Bloque ${b.numero}: ${b.titulo} (${b.horas}h)`));
-    (b.temas||[]).forEach(t2=>{ children.push(body(`  ${t2.num}. ${t2.titulo} — ${(t2.horas_teoria||0)+(t2.horas_practica||0)}h`)); });
-  });
-  children.push(blank());
-
-  // 5. Metodología
-  children.push(h1('5. Metodología Docente'));
-  children.push(body(safeJson(d.final,'metodologia_detallada','')));
-  children.push(blank());
-
-  // 6. Evaluación - TABLE
-  children.push(h1('6. Sistema de Evaluación'));
-  const evalRows = safeArr(d.evaluacion,'instrumentos');
-  const cw6 = [2700,3200,900,1760];
-  const evalTable = new Table({
-    width:{ size:9026, type:WidthType.DXA },
-    columnWidths: cw6,
-    rows:[
-      new TableRow({ children:[
-        new TableCell({ borders, width:{size:cw6[0],type:WidthType.DXA}, shading:{fill:'2D5BE3',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:'Instrumento',bold:true,color:'FFFFFF',size:20,font:'Arial'})]})] }),
-        new TableCell({ borders, width:{size:cw6[1],type:WidthType.DXA}, shading:{fill:'2D5BE3',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:'Descripción',bold:true,color:'FFFFFF',size:20,font:'Arial'})]})] }),
-        new TableCell({ borders, width:{size:cw6[2],type:WidthType.DXA}, shading:{fill:'2D5BE3',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:'Peso',bold:true,color:'FFFFFF',size:20,font:'Arial'})]})] }),
-        new TableCell({ borders, width:{size:cw6[3],type:WidthType.DXA}, shading:{fill:'2D5BE3',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:'Competencias',bold:true,color:'FFFFFF',size:20,font:'Arial'})]})] }),
-      ]}),
-      ...evalRows.map((r,i)=> new TableRow({ children:[
-        new TableCell({ borders, width:{size:cw6[0],type:WidthType.DXA}, shading:{fill:i%2?'F0F4FF':'FFFFFF',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:r.instrumento||'',bold:true,size:20,font:'Arial'})]})] }),
-        new TableCell({ borders, width:{size:cw6[1],type:WidthType.DXA}, shading:{fill:i%2?'F0F4FF':'FFFFFF',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:r.descripcion||'',size:20,font:'Arial'})]})] }),
-        new TableCell({ borders, width:{size:cw6[2],type:WidthType.DXA}, shading:{fill:i%2?'F0F4FF':'FFFFFF',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:(r.peso||0)+'%',bold:true,size:20,font:'Arial'})]})] }),
-        new TableCell({ borders, width:{size:cw6[3],type:WidthType.DXA}, shading:{fill:i%2?'F0F4FF':'FFFFFF',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:r.competencias_evaluadas||'',size:20,font:'Arial'})]})] }),
-      ]}))
-    ]
-  });
-  children.push(evalTable);
-  children.push(blank());
-  if(d.evaluacion?.criterios_superacion){ children.push(body('Criterios de superación: ' + d.evaluacion.criterios_superacion)); }
-  children.push(blank());
-
-  // 7. Cronograma
-  children.push(h1('7. Cronograma Orientativo'));
-  const cron = safeArr(d.final,'cronograma');
-  const cw7 = [1200,3400,2826,1600];
-  const cronTable = new Table({
-    width:{ size:9026, type:WidthType.DXA },
-    columnWidths: cw7,
-    rows:[
-      new TableRow({ children:[
-        ...[['Semanas',cw7[0]],['Bloque/Contenidos',cw7[1]],['Actividades',cw7[2]],['Evaluación',cw7[3]]].map(([txt,cw])=>
-          new TableCell({ borders, width:{size:cw,type:WidthType.DXA}, shading:{fill:'444444',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:txt,bold:true,color:'FFFFFF',size:20,font:'Arial'})]})] })
-        )
-      ]}),
-      ...cron.map((r,i)=> new TableRow({ children:[
-        new TableCell({ borders, width:{size:cw7[0],type:WidthType.DXA}, shading:{fill:i%2?'F8F8F8':'FFFFFF',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:r.semana||'',bold:true,size:20,font:'Arial'})]})] }),
-        new TableCell({ borders, width:{size:cw7[1],type:WidthType.DXA}, shading:{fill:i%2?'F8F8F8':'FFFFFF',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:r.bloque||'',size:20,font:'Arial'})]})] }),
-        new TableCell({ borders, width:{size:cw7[2],type:WidthType.DXA}, shading:{fill:i%2?'F8F8F8':'FFFFFF',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:r.actividades||'',size:20,font:'Arial'})]})] }),
-        new TableCell({ borders, width:{size:cw7[3],type:WidthType.DXA}, shading:{fill:i%2?'F8F8F8':'FFFFFF',type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120}, children:[new Paragraph({children:[new TextRun({text:r.evaluacion||'',size:20,font:'Arial'})]})] }),
-      ]}))
-    ]
-  });
-  children.push(cronTable);
-  children.push(blank());
+  const cron=safeArr(d.final,'cronograma');
+  let cronH=`<table class="cronograma-table"><thead><tr><th>Semanas</th><th>Bloque/Contenidos</th><th>Actividades</th><th>Evaluación</th></tr></thead><tbody>`;
+  cron.forEach(r=>{cronH+=`<tr><td><strong>${escHtml(r.semana||'')}</strong></td><td>${escHtml(r.bloque||'')}</td><td>${escHtml(r.actividades||'')}</td><td>${escHtml(r.evaluacion||'')}</td></tr>`;});
+  cronH+=`</tbody></table>`;
+  html += sec('7. Cronograma', cronH);
 
   // 8. Bibliografía
-  children.push(h1('8. Bibliografía y Recursos'));
-  safeArr(d.final,'recursos').forEach(r=>{ children.push(body('• ' + r)); });
-  children.push(blank());
+  html += sec('8. Bibliografía', safeArr(d.final,'recursos').map(r=>`<div class="bib-item">📚 ${escHtml(r)}</div>`).join('')||'<p>Ver plataforma docente.</p>');
 
   // 9. Tutoría
-  children.push(h1('9. Tutoría e Información Adicional'));
-  children.push(body(safeJson(d.final,'tutoria','')));
+  html += sec('9. Tutoría e Información',`<div class="syl-section-content">${escHtml(safeJson(d.final,'tutoria',''))}\n\n${escHtml(safeJson(d.final,'informacion_adicional',''))}</div>`);
+
+  preview.innerHTML = html;
+}
+
+function sec(title,content){ return `<div class="syl-section"><div class="syl-section-title">${title}</div>${content}</div>`; }
+
+// ═══════════════════════════════════════════════
+// EXPORT: WORD
+// ═══════════════════════════════════════════════
+async function exportWord(){
+  if(!currentSyllabusData){showToast('Genera una guía primero');return;}
+  showToast('⏳ Generando Word…');
+  const d = currentSyllabusData;
+  const t = d.terms||REGION_TERMS[d.region]||REGION_TERMS.ES;
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,AlignmentType,HeadingLevel,BorderStyle,WidthType,ShadingType} = docx;
+  const border={style:BorderStyle.SINGLE,size:1,color:'CCCCCC'};
+  const borders={top:border,bottom:border,left:border,right:border};
+  const h1=txt=>new Paragraph({heading:HeadingLevel.HEADING_1,children:[new TextRun({text:txt,bold:true,size:28,font:'Arial',color:'2D5BE3'})]});
+  const h2=txt=>new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text:txt,bold:true,size:24,font:'Arial'})]});
+  const body=txt=>new Paragraph({children:[new TextRun({text:String(txt||''),size:22,font:'Arial'})],spacing:{after:120}});
+  const blank=()=>new Paragraph({children:[new TextRun('')],spacing:{after:80}});
+  const children=[];
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:t.guia.toUpperCase(),bold:true,size:36,font:'Arial',color:'2D5BE3'})],spacing:{after:200}}));
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:d.asignatura,bold:true,size:32,font:'Arial'})],spacing:{after:160}}));
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:d.titulacion,size:24,font:'Arial',color:'555555'})],spacing:{after:100}}));
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:`${d.creditos} ${t.creditos} · ${d.curso} · ${d.semestre}`,size:22,font:'Arial',color:'777777'})],spacing:{after:80}}));
   children.push(blank());
-  children.push(body(safeJson(d.final,'informacion_adicional','')));
-
-  // Footer note
-  children.push(blank());
-  children.push(new Paragraph({ alignment:AlignmentType.CENTER, children:[new TextRun({ text:`Generado con SyllabusAI · ${new Date().toLocaleDateString('es-ES')}`, size:18, font:'Arial', color:'AAAAAA', italics:true })] }));
-
-  const doc = new Document({
-    styles:{ default:{ document:{ run:{ font:'Arial', size:22 } } } },
-    sections:[{
-      properties:{ page:{ size:{ width:11906, height:16838 }, margin:{ top:1134, right:1134, bottom:1134, left:1134 } } },
-      children
-    }]
-  });
-
-  const buffer = await Packer.toBlob(doc);
+  children.push(h1('1. Descripción')); children.push(body(safeJson(d.contexto,'descripcion',''))); children.push(body('Requisitos previos: '+safeJson(d.contexto,'requisitos_previos',''))); children.push(blank());
+  children.push(h1('2. Competencias'));
+  children.push(h2('2.1 Genéricas')); safeArr(d.competencias,'genericas').forEach(c=>children.push(body(`[${c.codigo}] ${c.texto}`)));
+  children.push(h2('2.2 Específicas')); safeArr(d.competencias,'especificas').forEach(c=>children.push(body(`[${c.codigo}] ${c.texto}`))); children.push(blank());
+  children.push(h1('3. Resultados de Aprendizaje')); safeArr(d.rda,'resultados').forEach(r=>children.push(body(`• [${r.nivel}] ${r.texto||r}`))); children.push(blank());
+  children.push(h1('4. Temario')); safeArr(d.temario,'bloques').forEach(b=>{children.push(h2(`Bloque ${b.numero}: ${b.titulo} (${b.horas}h)`)); (b.temas||[]).forEach(t2=>children.push(body(`  ${t2.num}. ${t2.titulo}`)));});  children.push(blank());
+  children.push(h1('5. Metodología')); children.push(body(safeJson(d.final,'metodologia_detallada',''))); children.push(blank());
+  // Eval table
+  children.push(h1('6. Evaluación'));
+  const evalRows=safeArr(d.evaluacion,'instrumentos');
+  const cw6=[2700,3200,900,1760];
+  children.push(new Table({width:{size:9026,type:WidthType.DXA},columnWidths:cw6,rows:[new TableRow({children:[
+    new TableCell({borders,width:{size:cw6[0],type:WidthType.DXA},shading:{fill:'2D5BE3',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:'Instrumento',bold:true,color:'FFFFFF',size:20,font:'Arial'})]})]}),
+    new TableCell({borders,width:{size:cw6[1],type:WidthType.DXA},shading:{fill:'2D5BE3',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:'Descripción',bold:true,color:'FFFFFF',size:20,font:'Arial'})]})]}),
+    new TableCell({borders,width:{size:cw6[2],type:WidthType.DXA},shading:{fill:'2D5BE3',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:'Peso',bold:true,color:'FFFFFF',size:20,font:'Arial'})]})]}),
+    new TableCell({borders,width:{size:cw6[3],type:WidthType.DXA},shading:{fill:'2D5BE3',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:'Competencias',bold:true,color:'FFFFFF',size:20,font:'Arial'})]})]})
+  ]}), ...evalRows.map((r,i)=>new TableRow({children:[
+    new TableCell({borders,width:{size:cw6[0],type:WidthType.DXA},shading:{fill:i%2?'F0F4FF':'FFFFFF',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:r.instrumento||'',bold:true,size:20,font:'Arial'})]})] }),
+    new TableCell({borders,width:{size:cw6[1],type:WidthType.DXA},shading:{fill:i%2?'F0F4FF':'FFFFFF',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:r.descripcion||'',size:20,font:'Arial'})]})] }),
+    new TableCell({borders,width:{size:cw6[2],type:WidthType.DXA},shading:{fill:i%2?'F0F4FF':'FFFFFF',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:(r.peso||0)+'%',bold:true,size:20,font:'Arial'})]})] }),
+    new TableCell({borders,width:{size:cw6[3],type:WidthType.DXA},shading:{fill:i%2?'F0F4FF':'FFFFFF',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:r.competencias_evaluadas||'',size:20,font:'Arial'})]})] }),
+  ]}))]})  ); children.push(blank());
+  // Cronograma table
+  children.push(h1('7. Cronograma'));
+  const cron=safeArr(d.final,'cronograma'), cw7=[1200,3400,2826,1600];
+  children.push(new Table({width:{size:9026,type:WidthType.DXA},columnWidths:cw7,rows:[new TableRow({children:[
+    ...[['Semanas',cw7[0]],['Bloque',cw7[1]],['Actividades',cw7[2]],['Evaluación',cw7[3]]].map(([txt,cw])=>new TableCell({borders,width:{size:cw,type:WidthType.DXA},shading:{fill:'444444',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:txt,bold:true,color:'FFFFFF',size:20,font:'Arial'})]})]}))
+  ]}), ...cron.map((r,i)=>new TableRow({children:[
+    new TableCell({borders,width:{size:cw7[0],type:WidthType.DXA},shading:{fill:i%2?'F8F8F8':'FFFFFF',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:r.semana||'',bold:true,size:20,font:'Arial'})]})] }),
+    new TableCell({borders,width:{size:cw7[1],type:WidthType.DXA},shading:{fill:i%2?'F8F8F8':'FFFFFF',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:r.bloque||'',size:20,font:'Arial'})]})] }),
+    new TableCell({borders,width:{size:cw7[2],type:WidthType.DXA},shading:{fill:i%2?'F8F8F8':'FFFFFF',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:r.actividades||'',size:20,font:'Arial'})]})] }),
+    new TableCell({borders,width:{size:cw7[3],type:WidthType.DXA},shading:{fill:i%2?'F8F8F8':'FFFFFF',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:r.evaluacion||'',size:20,font:'Arial'})]})] }),
+  ]}))]})  ); children.push(blank());
+  children.push(h1('8. Bibliografía')); safeArr(d.final,'recursos').forEach(r=>children.push(body('• '+r))); children.push(blank());
+  children.push(h1('9. Tutoría e Información')); children.push(body(safeJson(d.final,'tutoria',''))); children.push(body(safeJson(d.final,'informacion_adicional','')));
+  children.push(blank()); children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:`Generado con SyllabusAI · ${new Date().toLocaleDateString('es-ES')}`,size:18,font:'Arial',color:'AAAAAA',italics:true})]}));
+  const doc2 = new Document({styles:{default:{document:{run:{font:'Arial',size:22}}}},sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1134,right:1134,bottom:1134,left:1134}}},children}]});
+  const buffer = await Packer.toBlob(doc2);
   const url = URL.createObjectURL(buffer);
-  const a = document.createElement('a');
-  a.href = url; a.download = `GuiaDocente_${d.asignatura.replace(/\s+/g,'_')}.docx`;
-  a.click();
+  const a = document.createElement('a'); a.href=url; a.download=`GuiaDocente_${d.asignatura.replace(/\s+/g,'_')}.docx`; a.click();
   showToast('✅ Word descargado');
 }
 
-// ─────────────────────────────────────────────
-// EXPORT: PRINT/PDF
-// ─────────────────────────────────────────────
 function exportPDF(){ window.print(); }
+function copyText(){ const el=document.getElementById('syllabusPreview'); navigator.clipboard.writeText(el?el.innerText:'').then(()=>showToast('✅ Texto copiado')); }
 
-// ─────────────────────────────────────────────
-// EXPORT: COPY TEXT
-// ─────────────────────────────────────────────
-function copyText(){
-  const el = document.getElementById('syllabusPreview');
-  const text = el ? el.innerText : '';
-  navigator.clipboard.writeText(text).then(()=>showToast('✅ Texto copiado al portapapeles'));
-}
-
-// ─────────────────────────────────────────────
-// EXPORT: JSON for CasoPrácticoAI
-// ─────────────────────────────────────────────
 function exportForCasos(){
-  if (!currentSyllabusData){ showToast('Genera una guía primero'); return; }
-  const d = currentSyllabusData;
-  const payload = {
-    _source: 'SyllabusAI',
-    _version: '1.0',
-    asignatura: d.asignatura,
-    titulacion: d.titulacion,
-    creditos: d.creditos,
-    curso: d.curso,
-    region: d.region,
-    idioma: d.idioma,
-    competencias_genericas: safeArr(d.competencias,'genericas'),
-    competencias_especificas: safeArr(d.competencias,'especificas'),
-    resultados_aprendizaje: safeArr(d.rda,'resultados'),
-    bloques_temario: safeArr(d.temario,'bloques').map(b=>({ numero:b.numero, titulo:b.titulo, temas:(b.temas||[]).map(t=>t.titulo||t) })),
-    metodologia: d.final?.metodologia_detallada?.substring(0,300) || '',
-    exportedAt: new Date().toISOString(),
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `syllabus_${d.asignatura.replace(/\s+/g,'_')}.json`;
-  a.click();
+  if(!currentSyllabusData){showToast('Genera una guía primero');return;}
+  const d=currentSyllabusData;
+  const payload={_source:'SyllabusAI',_version:'1.0',asignatura:d.asignatura,titulacion:d.titulacion,creditos:d.creditos,curso:d.curso,region:d.region,idioma:d.idioma,competencias_genericas:safeArr(d.competencias,'genericas'),competencias_especificas:safeArr(d.competencias,'especificas'),resultados_aprendizaje:safeArr(d.rda,'resultados'),bloques_temario:safeArr(d.temario,'bloques').map(b=>({numero:b.numero,titulo:b.titulo,temas:(b.temas||[]).map(t=>t.titulo||t)})),metodologia:d.final?.metodologia_detallada?.substring(0,300)||'',exportedAt:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`syllabus_${d.asignatura.replace(/\s+/g,'_')}.json`; a.click();
   showToast('✅ JSON exportado para CasoPrácticoAI');
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 // UTILS
-// ─────────────────────────────────────────────
-function safeJson(obj, key, fallback=''){
-  if (!obj) return fallback;
-  if (typeof obj === 'string'){ try{ obj=JSON.parse(obj); }catch{ return fallback; } }
-  const v = obj[key];
-  if (v === undefined || v === null) return fallback;
-  if (fallback === true) return JSON.stringify(v).substring(0, 400);
+// ═══════════════════════════════════════════════
+function setAgentState(id,state,msg){
+  const el=document.getElementById('agent-'+id); if(!el)return;
+  el.className='agent-card '+state;
+  el.querySelector('.a-status').textContent=msg||'';
+}
+function setProgress(pct){ document.getElementById('progressBar').style.width=pct+'%'; }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function safeJson(obj,key,fallback=''){
+  if(!obj) return fallback;
+  if(typeof obj==='string'){try{obj=JSON.parse(obj);}catch{return fallback;}}
+  const v=obj[key]; if(v===undefined||v===null) return fallback;
+  if(fallback===true) return JSON.stringify(v).substring(0,400);
   return v;
 }
-
-function safeArr(obj, key){
-  if (!obj) return [];
-  if (typeof obj === 'string'){ try{ obj=JSON.parse(obj); }catch{ return []; } }
-  const v = obj[key];
-  return Array.isArray(v) ? v : [];
+function safeArr(obj,key){
+  if(!obj) return [];
+  if(typeof obj==='string'){try{obj=JSON.parse(obj);}catch{return [];}}
+  const v=obj[key]; return Array.isArray(v)?v:[];
 }
-
-function showToast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 3200);
-}
+function escHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200); }
 </script>
 
 <style>
-@media print {
-  .topbar,.sidebar,.topbar-actions,.export-btns,.result-header .btn-export,.integration-banner,.history-panel,.overlay,.toast{ display:none!important }
-  .layout{ display:block }
-  .main{ padding:0 }
-  .syllabus-preview{ box-shadow:none;border:none;padding:0 }
-  .result-header{ margin-bottom:12px }
-  .result-title{ font-size:16px }
+@media print{
+  .topbar,.export-btns,.result-header .btn-new,.integration-banner,.history-panel,.overlay,.toast{display:none!important}
+  #viewForm,#viewGenerating{display:none!important}
+  #viewResult{display:block!important;max-width:100%;padding:0}
+  .syllabus-preview{box-shadow:none;border:none;padding:0}
 }
 </style>
 </body>
