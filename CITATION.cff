@@ -1,6 +1,7 @@
 cff-version: 1.2.0
 message: "Si usas este software, cítalo con estos metadatos."
 title: "SyllabusAI"
+abstract: "Generador de guías docentes universitarias con siete asistentes de IA, competencias oficiales del título, créditos de cada país iberoamericano, matriz de alineamiento, verificación bibliográfica en OpenAlex y revisión de calidad automática."
 type: software
 authors:
   - family-names: "Borrás Rocher"
@@ -8,8 +9,16 @@ authors:
     affiliation: "Universidad Miguel Hernández de Elche"
     orcid: "https://orcid.org/0000-0002-5519-4573"
 doi: "10.5281/zenodo.21423173"
-version: "1.0.0"
-date-released: "2026-07-18"
+version: "2.0.0"
+date-released: "2026-09-26"
 url: "https://fborrasumh.github.io/sillabusAI/"
 repository-code: "https://github.com/fborrasumh/sillabusAI"
 license: MIT
+keywords:
+  - "guía docente"
+  - "sílabo"
+  - "diseño curricular"
+  - "resultados de aprendizaje"
+  - "alineamiento constructivo"
+  - "educación superior"
+  - "inteligencia artificial"
