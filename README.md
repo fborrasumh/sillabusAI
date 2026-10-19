@@ -6,6 +6,11 @@
 
 Genera la **guía docente** de una asignatura universitaria con el documento, el vocabulario y las normas del país: guía docente (España), ficha da unidade curricular (Portugal), programa de asignatura (México, Argentina, Chile), syllabus (Colombia), sílabo (Perú) o plano de ensino (Brasil). El **modo genérico** sirve para cualquier país o institución y no cita ninguna normativa. Es un único fichero (`index.html`) sin servidor; funciona con la clave de OpenAI, Google Gemini o Anthropic Claude de cada persona.
 
+## Novedades de la versión 3.0.1
+
+- **Descarga en Word arreglada.** El documento .docx se genera ahora en el propio navegador, sin cargar librerías externas: ya no aparece «No se pudo cargar una librería: ¿hay conexión?» y funciona sin conexión, con bloqueadores de contenido y en redes institucionales con proxy.
+- La lectura de PDF y Word subidos prueba un servidor alternativo (jsDelivr) si cdnjs no responde, y el mensaje de error explica qué hacer.
+
 ## Novedades de la versión 3.0
 
 - **Selector de país o modo genérico.** El país cambia el nombre del documento, sus apartados, la terminología, el sistema de créditos (ECTS, SATCA, RTF, crédito de 48 h, SCT-Chile, crédito peruano o carga horaria en horas), la escala de calificación, el mecanismo de recuperación y la exigencia de asistencia. Todos los valores son editables.
@@ -43,7 +48,7 @@ Las guías y la clave se guardan solo en el navegador (IndexedDB y `localStorage
 
 ## Cómo citar
 
-Borrás Rocher, F. (2026). *SyllabusAI* (versión 3.0.0) [Software]. Universidad Miguel Hernández de Elche. https://doi.org/10.5281/zenodo.21423173
+Borrás Rocher, F. (2026). *SyllabusAI* (versión 3.0.1) [Software]. Universidad Miguel Hernández de Elche. https://doi.org/10.5281/zenodo.21423173
 
 El DOI es el de concepto y apunta siempre a la última versión. Forma parte del catálogo [Herramientas IA para la academia](https://fborrasumh.github.io/ia/).
 
